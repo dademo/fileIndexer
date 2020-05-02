@@ -1,0 +1,16 @@
+# VSCode
+/.vscode
+
+# Virtualenv
+/bin
+/include
+/lib
+/lib64
+
+# Python
+__pycache__
+*.pyc
+
+# App
+db/
+config.yaml

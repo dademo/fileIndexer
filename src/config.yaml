@@ -1,0 +1,9 @@
+global:
+    connectionString: sqlite:///db/core.db
+    modules:
+        - public.modules.coreModule
+    fsModules:
+        - public.modules.localFileSystemModule
+
+core:
+    workers: 4
