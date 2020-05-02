@@ -1,8 +1,11 @@
 from public import FileHandleModule, FileDescriptor
 import public.dbTools as dbTools
+import logging
 
 import sqlalchemy
 from sqlalchemy.sql import select, func, and_
+
+logger = logging.getLogger('fileIndexer').getChild('public.modules.coreModule.DbQuerier')
 
 
 class DbQuerier(object):
@@ -17,7 +20,7 @@ class DbQuerier(object):
         table = self.table
 
         s = select([
-                func.count(table['file']).label('file_count')
+                func.count(table['file'].c.id).label('file_count')
             ]).\
             select_from(table['file'].join(table['file_path'])).\
             where(and_(
@@ -102,4 +105,6 @@ class DbQuerier(object):
         fileMimeEntity = self.getFileMimeEntity(fileDescriptor.getFileMime())
         fileEncodingEntity = self.getFileEncodingEntity(fileDescriptor.getFileEncoding())
         filePathEntity = self.getFilePathEntity(fileDescriptor.getFilePath())
+        #logger.info(fileDescriptor.getFileName())
+        #logger.info(fileDescriptor.getFileDescription())
         fileEntity = self.getFileEntity(fileDescriptor, fileMimeEntity, fileEncodingEntity, filePathEntity)

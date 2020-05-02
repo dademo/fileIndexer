@@ -18,6 +18,8 @@ def initializeDb(dbEngine: Engine, modules: List[FileHandleModule], configuratio
         schema = module.getDatabaseSchema().replace(os.path.sep, '_')
         if is_sqlite(dbEngine):
             ensure_sqlite_schema(dbEngine, schema)
+        else:
+            ensure_schema(dbEngine, schema)
 
         moduleMetaData = MetaData(schema=schema)
         module.defineTables(moduleMetaData, configuration)
@@ -52,3 +54,9 @@ def ensure_sqlite_schema(dbEngine: Engine, schema: str) -> None:
                 'schema': schema
             })
 
+def ensure_schema(dbEngine: Engine, schema: str) -> None:
+
+    with dbEngine.begin() as dbConnection:
+        dbConnection.execute('''
+            CREATE SCHEMA IF NOT EXISTS %(schema)s
+        ''' % { 'schema': schema })

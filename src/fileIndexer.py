@@ -38,7 +38,7 @@ if __name__ == '__main__':
     appModules = []
 
     
-    appConfig = yaml.load(os.path.join(os.path.dirname(__file__) or '.', 'config.yaml'))
+    appConfig = yaml.load(os.path.join(os.path.dirname(__file__) or '.', 'config.yaml'), Loader=yaml.FullLoader)
 
     for moduleName in [
         'public.modules.CoreModule'
@@ -46,7 +46,8 @@ if __name__ == '__main__':
         appModules.append(loadModule(moduleName, FileHandleModule))
 
     #db = sqlalchemy.create_engine('sqlite:///:memory:', encoding='utf-8', echo=True)
-    dbEngine = sqlalchemy.create_engine('sqlite:///db/core.db', encoding='utf-8', poolclass=sqlalchemy.pool.StaticPool, isolation_level=None)
+    #dbEngine = sqlalchemy.create_engine('sqlite:///db/core.db', encoding='utf-8', poolclass=sqlalchemy.pool.StaticPool, isolation_level=None)
+    dbEngine = sqlalchemy.create_engine('postgresql://postgres:postgres@localhost/fileIndexer', encoding='utf-8', poolclass=sqlalchemy.pool.StaticPool, isolation_level=None)
     initializeDb(dbEngine, appModules, None)
 
     from pprint import pprint

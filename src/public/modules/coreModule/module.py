@@ -42,10 +42,10 @@ class CoreModule(FileHandleModule):
             sqlalchemy.Column('id_file_mime', sqlalchemy.Integer, sqlalchemy.ForeignKey('file_mime.id', ondelete='CASCADE'), nullable=False),
             sqlalchemy.Column('id_file_encoding', sqlalchemy.Integer, sqlalchemy.ForeignKey('file_encoding.id', ondelete='CASCADE'), nullable=False),
             sqlalchemy.Column('id_file_path', sqlalchemy.Integer, sqlalchemy.ForeignKey('file_path.id', ondelete='CASCADE'), nullable=False),
-            sqlalchemy.Column('filename', sqlalchemy.String(50), index=True, nullable=False),
+            sqlalchemy.Column('filename', sqlalchemy.String(255), index=True, nullable=False),
             sqlalchemy.Column('size_kilobyte', sqlalchemy.Integer, nullable=False),
             sqlalchemy.Column('last_update', sqlalchemy.DateTime, index=True, default=None),    # Updated with sha
-            sqlalchemy.Column('file_description', sqlalchemy.String(255)),                      # Libmagic default output
+            sqlalchemy.Column('file_description', sqlalchemy.String),                      # Libmagic default output
             sqlalchemy.Column('hash', sqlalchemy.String(256), index=True, default=None)         # SHA-256
         )
 
@@ -53,7 +53,7 @@ class CoreModule(FileHandleModule):
     def getSharedTables(self) -> Dict[str, sqlalchemy.Table]:
         return self.tables.copy()
 
-    def canHandle(self, fileDescriptor: FileDescriptor, fileUri: str) -> bool:
+    def canHandle(self, fileDescriptor: FileDescriptor) -> bool:
         # Handle everything
         return True
 

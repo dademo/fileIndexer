@@ -28,7 +28,7 @@ class FileHandleModule(ABC):
 
     # Processing
     @abstractmethod
-    def canHandle(self, fileDescriptor: FileDescriptor, fileUri: str) -> bool:
+    def canHandle(self, fileDescriptor: FileDescriptor) -> bool:
         pass
 
     @abstractmethod

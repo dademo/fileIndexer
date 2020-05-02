@@ -1,5 +1,7 @@
 global:
-    connectionString: sqlite:///db/core.db
+    #connectionString: sqlite:///db/core.db
+    sqlite:
+        sqlite_dir: db
     modules:
         - public.modules.coreModule
     fsModules:
