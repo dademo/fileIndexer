@@ -1,0 +1,2 @@
+class MissingDatabaseConfigurationException(Exception):
+    pass

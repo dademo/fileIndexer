@@ -1,0 +1,2 @@
+class ConfiguratonError(Exception):
+    pass

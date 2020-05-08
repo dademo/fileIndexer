@@ -1,5 +1,6 @@
 from public.fileSystemModule import FileSystemModule
 from public.fileDescriptor import FileDescriptor
+from public.configHandler import ConfigHandler
 
 from .localFileDescriptor import LocalFileDescriptor
 
@@ -20,7 +21,7 @@ class LocalFileSystemModule(FileSystemModule):
     def handledURLSchemes() -> str or List[str] or Iterable[str]:
         return [ 'file' ]
 
-    def connect(self, parsedUri: ParseResult, config: dict) -> None:
+    def connect(self, parsedUri: ParseResult, config: ConfigHandler) -> None:
         self.basePath = parsedUri.path
         
 

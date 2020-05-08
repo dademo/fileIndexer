@@ -1,4 +1,4 @@
-from .fileDescriptor import FileDescriptor
+from public import FileDescriptor, ConfigHandler
 
 from abc import ABC, abstractmethod
 from typing import Iterable, List, IO, Dict
@@ -19,7 +19,7 @@ class FileHandleModule(ABC):
         pass
 
     @abstractmethod
-    def defineTables(self, metadata: sqlalchemy.MetaData, configuration: dict) -> None:
+    def defineTables(self, metadata: sqlalchemy.MetaData, configuration: ConfigHandler) -> None:
         pass
 
     @abstractmethod

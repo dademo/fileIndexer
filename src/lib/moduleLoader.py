@@ -1,7 +1,12 @@
 import importlib
+import logging
+
+logger = logging.getLogger('fileIndexer').getChild('lib.moduleLoader')
+
 
 def loadModule(moduleName: str, moduleType: type):
 
+    logger.info("Loading module [%s]" % moduleName)
     modulePath = moduleName[:moduleName.rfind('.')]
     moduleClassName = moduleName[moduleName.rfind('.')+1:]
     err = None
@@ -16,7 +21,7 @@ def loadModule(moduleName: str, moduleType: type):
         raise RuntimeError("Can't import the module (%s)" % repr(err))
 
     if not moduleClassName in dir(importedModule):
-        raise ImportError('Module [%s] not found [%s]' % (moduleClassName, moduleName))
+        raise ImportError('Module [%s] not found in [%s]' % (moduleClassName, moduleName))
 
     _module = getattr(importedModule, moduleClassName)
 

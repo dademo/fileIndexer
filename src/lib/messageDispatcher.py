@@ -4,18 +4,28 @@ from fnmatch import fnmatch
 from typing import List, Iterable
 
 from public import FileHandleModule
-import public.queueHandler as queueHandler
 from public.fileDescriptor import FileDescriptor
+from public.configHandler import ConfigHandler
+
+from multiprocessing.pool import ThreadPool
+import multiprocessing.dummy
+#from multiprocessing.dummy import DummyProcess
+from multiprocessing.pool import ThreadPool
 
 
-class MessageDispatcher(Thread):
+class MessageDispatcher(object):
     
-    def __init__(self, modules: List[FileHandleModule]):
+    def __init__(self, modules: List[FileHandleModule], config: ConfigHandler):
 
         self.modules = modules
 
+        self.threadPool = ThreadPool(config.get('global.workersCount', raiseException=False))
+        
         self.done = False
-        self.queue = queueHandler.getAppInputQueue()
+
+
+    def __del__(self):
+        self.threadPool.close()
 
 
     def setDone(self):
@@ -38,6 +48,8 @@ class MessageDispatcher(Thread):
                 # module.getQueue.put(value)
                 pass
 
+    def closeAll(self):
+        pass
 
     def _module_mimes(self, module: FileHandleModule) -> Iterable[str]:
 

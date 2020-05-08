@@ -1,4 +1,5 @@
 from public.fileHandleModule import FileHandleModule, FileDescriptor
+from public.configHandler import ConfigHandler
 from typing import Iterable, List, IO, Dict
 import logging
 from .dbQuerier import DbQuerier
@@ -20,7 +21,7 @@ class CoreModule(FileHandleModule):
     def getDatabaseSchema(self) -> str:
         return 'core'
     
-    def defineTables(self, metadata: sqlalchemy.MetaData, configuration: dict) -> None:
+    def defineTables(self, metadata: sqlalchemy.MetaData, configuration: ConfigHandler) -> None:
 
         ##
         self.tables['file_mime'] = sqlalchemy.Table('file_mime', metadata,

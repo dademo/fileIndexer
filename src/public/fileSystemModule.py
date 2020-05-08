@@ -1,10 +1,11 @@
-from .fileDescriptor import FileDescriptor
+from public import FileDescriptor, ConfigHandler
 
 from abc import ABC, abstractmethod
 from typing import Iterable, List, IO
 from urllib.parse import ParseResult
 
 import sqlalchemy
+
 
 class FileSystemModule(ABC):
     
@@ -14,7 +15,7 @@ class FileSystemModule(ABC):
         pass
 
     @abstractmethod
-    def connect(self, parsedUri: ParseResult, config: dict) -> None:
+    def connect(self, parsedUri: ParseResult, config: ConfigHandler) -> None:
         pass
 
     @abstractmethod
