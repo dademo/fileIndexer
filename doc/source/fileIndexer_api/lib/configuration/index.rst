@@ -1,0 +1,10 @@
+configuration module
+====================
+
+
+.. toctree::
+   :maxdepth: 5
+   :caption: Contents:
+
+   dbConfiguration
+   moduleConfiguration

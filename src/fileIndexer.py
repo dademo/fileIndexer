@@ -34,23 +34,30 @@ def _unique(v: Iterable[Any]) -> List[Any]:
         Return unique values of iterable as a list (required for lazy_streams).
 
         :param v: The iterable to handle.
+        :type v: [any]
 
         :returns: A list containing unique values.
+        :rtype: [any]
     '''
     return list(set(v))
 
 
-def loadAppConfig(configPath: str, appPath: str) -> ConfigHandler:
+def loadAppConfig(configPath: str) -> ConfigHandler:
     '''
         Loads the application configuration with the required modules (default and specified in configuration).
 
         :param configPath: The configuration path to load (a ``.yaml`` file).
+        :type configPath: str
 
         :returns: The application configuration.
+        :rtype: ConfigHandler
     '''
     
     #appConfig = yaml.load(os.path.join(os.path.dirname(__file__) or '.', 'config.yaml'), Loader=yaml.FullLoader)
-    appConfig = ConfigHandler(configPath, appPath=appPath)
+    appConfig = ConfigHandler.load(
+        configPath,
+        appPath=os.path.abspath(os.path.dirname(__file__) or '.')
+    )
 
     appConfig._fileHandleModules = stream(_unique(__defaultFileHandleModules + (appConfig.get(moduleConfiguration['fileHandleModulesConfiguration'], False) or []))) \
         .map(lambda moduleName: loadModule(moduleName, FileHandleModule)) \
@@ -80,9 +87,7 @@ if __name__ == '__main__':
     appFileSystemModules = []
     appModules = []
     
-    appConfig = loadAppConfig(
-        configPath =    os.path.abspath(os.path.join(os.path.dirname(__file__) or '.', 'config.yaml')),
-        appPath =       os.path.abspath(os.path.dirname(__file__) or '.'))
+    appConfig = loadAppConfig(configPath =    os.path.abspath(os.path.join(os.path.dirname(__file__) or '.', 'config.yaml')))
     dbEngine = getInitializedDb(appConfig)
 
     #db = sqlalchemy.create_engine('sqlite:///:memory:', encoding='utf-8', echo=True)

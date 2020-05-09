@@ -22,10 +22,13 @@ class ConfigHandler(object):
         loaded modules (injected by the main program).
 
         :param configPath: The path of the configuration (we assume this path exists, instead an :class:`IOError` will be thrown).
-        :appPath: The application path, used to be retrieved by :meth:`getAppPath`.
+        :type configPath: str
+
+        :param appPath: The application path, used to be retrieved by :meth:`ConfigHandler.getAppPath`.
+        :type appPath: str
     '''
 
-    def __init__(self, configPath: str, appPath = None):
+    def __init__(self, configPath: str, appPath: str = None):
 
         logger.info('Loading configuration from file [%s]' % configPath)
         # Loading the configuration
@@ -42,19 +45,34 @@ class ConfigHandler(object):
             raise ConfiguratonError("Unable to load configuration at path [%s]" % configPath)
 
     @staticmethod
-    def load(configPath: str):
-        return ConfigHandler(configPath)
+    def load(configPath: str, appPath: str = None):
+        '''
+            Loads the configuration from the given path and returns a configured ConfigHandler.
+            Same as calling the ConfigHandler constructor.
+
+            :param configPath: Path of the configuration to load.
+            :type configPath: str
+            :param appPath: The application path, used to be retrieved by :meth:`ConfigHandler.getAppPath`.
+            :type appPath: str
+
+            :returns: A configured ConfigHandler.
+            :rtype: ConfigHandler
+        '''
+        return ConfigHandler(configPath, appPath)
 
     def get(self, jsonPointer: str, raiseException: bool = True) -> Any:
         '''
-            Get a configuration using a json path (with module :module:`jsonpointer`, see :ref:`6901`).
+            Get a configuration using a json path (with module :mod:`jsonpointer`, see :rfc:`6901`).
             ex: my/configuration/path
 
             :param jsonPointer: The wanted config path.
+            :type jsonPointer: str
             :param raiseException: If an exception should be raised if a configuration key have not been found.
                                    If true and an exception have been raised, will return None
+            :type raiseException: bool
 
             :returns: The configuration at designed path if found.
+            :rtype: any
             :raises jsonpointer.JsonPointerException: A configuration have not been found or an invalid syntax.
         '''
         
@@ -68,10 +86,28 @@ class ConfigHandler(object):
                 return None
 
     def getFileHandleModules(self) -> List[FileHandleModule]:
+        '''
+            Get all the app loaded file handle modules (injected by the main program).
+
+            :returns: All the loaded file handle modules.
+            :rtype: List[:class:`public.fileHandleModule.FileHandleModule`]
+        '''
         return self._fileHandleModules
 
     def getFileSystemModules(self) -> List[FileSystemModule]:
+        '''
+            Get all the app loaded file system modules (injected by the main program).
+
+            :returns: All the loaded file system modules.
+            :rtype: List[:class:`public.fileSystemModule.FileSystemModule`]
+        '''
         return self._fileSystemModules
 
     def getAppPath(self) -> str:
+        '''
+            Return the application path.
+
+            :returns: The application path.
+            :rtype: str
+        '''
         return self._appPath

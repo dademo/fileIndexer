@@ -18,6 +18,9 @@ class CoreModule(FileHandleModule):
     def handledFileMimes():
         return '*'
 
+    def requiredModules(self) -> Iterable[str] or None:
+        return None
+
     def getDatabaseSchema(self) -> str:
         return 'core'
     

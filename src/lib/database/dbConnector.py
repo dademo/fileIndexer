@@ -25,7 +25,7 @@ def getDbEngine(configuration: ConfigHandler) -> Engine:
         Initialize a database connection. This database is ready to be exploited by the application
         (with schemas declared by configured modules).
         
-        :param configuration: A :class:`public.ConfigHandler` instance, having app configuration.
+        :param configuration: A :class:`public.configHandler.ConfigHandler` instance, having app configuration.
 
         :returns: A :class:`sqlalchemy.engine.Engine` instance.
         :raises MissingDatabaseConfigurationException: No database connection is configured.
