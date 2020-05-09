@@ -56,7 +56,7 @@ class ConfigHandler(object):
             :type appPath: str
 
             :returns: A configured ConfigHandler.
-            :rtype: ConfigHandler
+            :rtype: :class:`public.configHandler.ConfigHandler`
         '''
         return ConfigHandler(configPath, appPath)
 

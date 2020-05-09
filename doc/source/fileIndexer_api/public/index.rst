@@ -9,5 +9,6 @@ public
    configHandler
    fileHandleModule
    fileSystemModule
+   fileDescriptor
    dbTools
    magicTools

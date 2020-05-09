@@ -16,6 +16,7 @@ class FileHandleModule(ABC):
             to the current file mime using :func:`fnmatch.fnmatch`.
 
             :returns: A list of handled file mimes or a single value.
+            :rtype: Iterable[str] or str
         '''
         pass
 
@@ -26,6 +27,7 @@ class FileHandleModule(ABC):
             be called before this object.
 
             :returns: A list of required modules (abolute path or class name) or ``None``.
+            :rtype: Iterable[str]
         '''
         pass
 
@@ -37,6 +39,7 @@ class FileHandleModule(ABC):
             required schemas).
 
             :returns: The name of the schema used by this module.
+            :rtype: str
         '''
         pass
 
@@ -46,7 +49,9 @@ class FileHandleModule(ABC):
             Declares the tables used by this module using the given metadata.
 
             :param metadata: The metadata to configure (using the schema given by :meth:`FileHandleModule.getDatabaseSchema`).
+            :type metadata: :class:`sqlalchemy.schema.MetaData`
             :param configuration: The application configuration.
+            :type configuration: :class:`public.configHandler.ConfigHandler`
 
             .. note::
                 The declared tables should be saved in order to be retrieved with :meth:`FileHandleModule.getSharedtables`.
@@ -59,6 +64,7 @@ class FileHandleModule(ABC):
             Return tables which can be used by other modules.
 
             :returns: Tables which can be used by other modules.
+            :rtype: dict of [str, :class:`sqlalchemy.schema.Table`]
         '''
         pass
 
@@ -69,18 +75,23 @@ class FileHandleModule(ABC):
             Check whether this module can handle the given file (in addition to :meth:`FileHandleModule.handledFileMimes`).
 
             :param fileDescriptor: A file descriptor, used to check whether this module can handle this file.
+            :type fileDescriptor: :class:`public.fileDescriptor.FileDescriptor`
             :returns: If this module can handle the given file.
+            :rtype: bool
         '''
         pass
 
     @abstractmethod
-    def handle(self, fileDescriptor: FileDescriptor, dbConnection: sqlalchemy.engine.Engine, haveBeenModified: bool) -> None:
+    def handle(self, fileDescriptor: FileDescriptor, dbEngine: sqlalchemy.engine.Engine, haveBeenModified: bool) -> None:
         '''
             Perform data extraction from the given file.
 
             :param fileDescriptor: A file descriptor, used by the module to acquire informations.
-            :param dbConnection: A SQLAlchemy engine to query the configured database.
+            :type fileDescriptor: :class:`public.fileDescriptor.FileDescriptor`
+            :param dbEngine: A SQLAlchemy engine to query the configured database.
+            :type dbEngine: :class:`sqlalchemy.engine.Engine`
             :param haveBeenModifier: Inform whether this file have been modified since last execution.
                                         This information should be used in order to avoid useless processing.
+            :type haveBeenModified: bool
         '''
         pass

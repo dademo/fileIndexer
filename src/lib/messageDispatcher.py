@@ -12,14 +12,16 @@ import multiprocessing.dummy
 #from multiprocessing.dummy import DummyProcess
 from multiprocessing.pool import ThreadPool
 
+from sqlalchemy.engine import Engine
+
 
 class MessageDispatcher(object):
     
-    def __init__(self, modules: List[FileHandleModule], config: ConfigHandler):
+    def __init__(self, appConfig: ConfigHandler):
 
-        self.modules = modules
+        self.appConfig = appConfig
 
-        self.threadPool = ThreadPool(config.get('global.workersCount', raiseException=False))
+        self.threadPool = ThreadPool(appConfig.get('/global/workersCount', raiseException=False) or 4)
         
         self.done = False
 
@@ -42,9 +44,14 @@ class MessageDispatcher(object):
                 pass
 
 
-    def dispatch(self, value: FileDescriptor) -> None:
-        for module in filter(lambda module: fnmatch(value.getFileMime(), self._module_mimes(module)), self.modules):
+    def dispatch(self, value: FileDescriptor, dbEngine: Engine) -> None:
+        # TODO: Make a requirement tree
+        for module in filter(
+            lambda _module: any([fnmatch(value.getFileMime(), moduleMime) for moduleMime in self._module_mimes(_module)]),
+            self.appConfig.getFileHandleModules()):
             if module.canHandle(value):
+                # TODO: Edit haveBeenModified parameter
+                module.handle(value, dbEngine, False)
                 # module.getQueue.put(value)
                 pass
 

@@ -87,7 +87,7 @@ if __name__ == '__main__':
     appFileSystemModules = []
     appModules = []
     
-    appConfig = loadAppConfig(configPath =    os.path.abspath(os.path.join(os.path.dirname(__file__) or '.', 'config.yaml')))
+    appConfig = loadAppConfig(configPath = os.path.abspath(os.path.join(os.path.dirname(__file__) or '.', 'config.yaml')))
     dbEngine = getInitializedDb(appConfig)
 
     #db = sqlalchemy.create_engine('sqlite:///:memory:', encoding='utf-8', echo=True)
@@ -108,7 +108,7 @@ if __name__ == '__main__':
     #print('-\n'.join(map(lambda fileDesc: "%s: %s|%s" % (fileDesc.getFileName(), fileDesc.getFileMime(), fileDesc.getFileMime(ms_flags=magic.NONE)), fsModule.listFiles())))
     
     logger.info('Handling files')
-    messageDispatcher = MessageDispatcher(appModules, appConfig)
+    messageDispatcher = MessageDispatcher(appConfig)
     for fileDecriptor in fsModule.listFiles():
-        messageDispatcher.dispatch(fileDecriptor)
+        messageDispatcher.dispatch(fileDecriptor, dbEngine)
         # appModules[0].handle(fileDecriptor, dbEngine, appConfig)

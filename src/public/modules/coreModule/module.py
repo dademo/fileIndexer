@@ -61,8 +61,8 @@ class CoreModule(FileHandleModule):
         # Handle everything
         return True
 
-    def handle(self, fileDescriptor: FileDescriptor, dbConnection: sqlalchemy.engine.Engine, haveBeenModified: bool) -> dict:
-        dbQuerier = DbQuerier(dbConnection, self)
+    def handle(self, fileDescriptor: FileDescriptor, dbEngine: sqlalchemy.engine.Engine, haveBeenModified: bool) -> dict:
+        dbQuerier = DbQuerier(dbEngine, self)
         if not dbQuerier.isFileInDatabase(fileDescriptor):
             #logger.info('File [%s] not in the database' % fileDescriptor.getFileFullName())
             dbQuerier.addFileInDatabase(fileDescriptor)

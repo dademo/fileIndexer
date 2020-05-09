@@ -9,13 +9,31 @@ logger = logging.getLogger('fileIndexer').getChild('public.modules.coreModule.Db
 
 
 class DbQuerier(object):
+    '''
+        A helper to query and insert entities for the CoreModule.
+
+        :param dbEngine: A SQLAlchemy DBEngine.
+        :type dbEngine: sqlalchemy.engine.Engine
+        :param moduleRef: A reference to the calling module (self).
+        :type moduleRef: class:`public.fileHandleModule.FileHandleModule`
+    '''
     
     def __init__(self, dbEngine: sqlalchemy.engine.Engine, moduleRef: FileHandleModule):
         self.dbEngine = dbEngine
         self.moduleRef = moduleRef
         self.table = moduleRef.getSharedTables()
 
+
     def isFileInDatabase(self, fileDescriptor: FileDescriptor) -> bool:
+        '''
+            Check whether the file description is in the database.
+            
+            :param fileDescriptor: A file descriptor to search in the database.
+            :type fileDescriptor: :class:`public.fileDescriptor.FileDescriptor`
+
+            :return: Wether the file is in the database.
+            :rtype: bool
+        '''
         
         table = self.table
 
@@ -33,6 +51,15 @@ class DbQuerier(object):
 
 
     def getFileMimeEntity(self, fileMime: str):
+        '''
+            Get the database value for the given fileMime.
+
+            :param fileMime: The file mime to retrieve.
+            :type fileMime: str
+
+            :return: A file mime entity
+            :rtype: dict
+        '''
         
         table = self.table
         
@@ -47,6 +74,15 @@ class DbQuerier(object):
 
 
     def getFileEncodingEntity(self, fileEncoding: str):
+        '''
+            Get the database value for the given fileEncoding.
+
+            :param fileEncoding: The file encoding to retrieve.
+            :type fileEncoding: str
+
+            :return: A file encoding entity
+            :rtype: dict
+        '''
         
         table = self.table
         
@@ -61,6 +97,15 @@ class DbQuerier(object):
 
 
     def getFilePathEntity(self, filePath: str):
+        '''
+            Get the database value for the given filePath.
+
+            :param filePath: The file path to retrieve.
+            :type filePath: str
+
+            :return: A file path entity
+            :rtype: dict
+        '''
         
         table = self.table
         
@@ -75,6 +120,21 @@ class DbQuerier(object):
 
 
     def getFileEntity(self, fileDescriptor: FileDescriptor, fileMimeEntity: any, fileEncodingEntity: any, filePathEntity: any):
+        '''
+            Add a file entity in the database.
+
+            :param fileDescriptor: A file descriptor.
+            :type fileDescriptor: :class:`public.fileDescriptor.FileDescriptor`
+            :param fileMimeEntity: dict
+            :type fileMimeEntity: A file mime entity.
+            :param fileEncodingEntity: A file encoding entity
+            :type fileEncodingEntity: dict
+            :param filePathEntity: A file path entity.
+            :type filePathEntity: dict
+
+            :return: A file entity
+            :rtype: dict
+        '''
         
         table = self.table
         
@@ -100,8 +160,14 @@ class DbQuerier(object):
         
         return dbTools.getSingletonEntity(s, i, self.dbEngine)
 
-    def addFileInDatabase(self, fileDescriptor: FileDescriptor):
-        
+    def addFileInDatabase(self, fileDescriptor: FileDescriptor) -> None:
+        '''
+            Insert base file information in the database.
+
+            :param fileDescriptor: A file descriptor to get file informations.
+            :type FileDescriptor: :class:`public.fileDescriptor.FileDescriptor`
+        '''
+
         fileMimeEntity = self.getFileMimeEntity(fileDescriptor.getFileMime())
         fileEncodingEntity = self.getFileEncodingEntity(fileDescriptor.getFileEncoding())
         filePathEntity = self.getFilePathEntity(fileDescriptor.getFilePath())

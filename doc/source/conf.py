@@ -60,5 +60,5 @@ html_static_path = ['_static']
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
     'sqlalchemy': ('https://docs.sqlalchemy.org/en/latest', None),
-    'json-pointer': ('https://python-json-pointer.readthedocs.io/en/latest', None)
+    'json-pointer': ('https://python-json-pointer.readthedocs.io/en/latest', None),
 }
