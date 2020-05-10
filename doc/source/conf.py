@@ -62,3 +62,6 @@ intersphinx_mapping = {
     'sqlalchemy': ('https://docs.sqlalchemy.org/en/latest', None),
     'json-pointer': ('https://python-json-pointer.readthedocs.io/en/latest', None),
 }
+
+# https://stackoverflow.com/questions/20864406/remove-package-and-module-name-from-sphinx-function
+add_module_names = True

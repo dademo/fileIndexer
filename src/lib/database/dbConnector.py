@@ -8,7 +8,6 @@ from .exceptions import MissingDatabaseConfigurationException
 
 import sqlalchemy
 from sqlalchemy.engine import Engine
-from lazy_streams import stream
 
 
 #__sqliteConnectionPattern = """sqlite:///%(databaseAbsolutePath)s"""
@@ -16,9 +15,12 @@ __sqliteMemoryConnectionPattern = """sqlite://"""
 
 
 def __getDatabaseSchemas(configuration: ConfigHandler) -> Iterable[str]:
-    return stream(configuration.getFileHandleModules())\
-        .map(lambda fileHandleModule: fileHandleModule.getDatabaseSchema())\
-        .to_list()
+    return list(
+        map(
+            lambda fileHandleModule: fileHandleModule.getDatabaseSchema(),
+            configuration.getFileHandleModules()
+        )
+    )
 
 def getDbEngine(configuration: ConfigHandler) -> Engine:
     '''
@@ -31,7 +33,7 @@ def getDbEngine(configuration: ConfigHandler) -> Engine:
         :raises MissingDatabaseConfigurationException: No database connection is configured.
     '''
 
-    sqliteDbBasePath = configuration.get(dbConfiguration['sqliteConfigPath'], False)
+    sqliteDbBasePath = configuration.get(dbConfiguration['sqliteConfigPath'])
 
     if sqliteDbBasePath:
         if os.path.isabs(sqliteDbBasePath):
@@ -59,7 +61,7 @@ def getDbEngine(configuration: ConfigHandler) -> Engine:
 
     else:
         # Trying with an external database
-        connectionString = configuration.get(dbConfiguration['dbConnectionString'], False)
+        connectionString = configuration.get(dbConfiguration['dbConnectionString'])
 
         if not connectionString:
             raise MissingDatabaseConfigurationException('No database connection found. You should configure it inside the config.yaml file at paths [%s] or [%s]' % (

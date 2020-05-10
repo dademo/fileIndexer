@@ -1,7 +1,10 @@
+import os
 from threading import Thread
 import queue
 from fnmatch import fnmatch
 from typing import List, Iterable
+
+from lib.configuration import moduleConfiguration
 
 from public import FileHandleModule
 from public.fileDescriptor import FileDescriptor
@@ -21,7 +24,7 @@ class MessageDispatcher(object):
 
         self.appConfig = appConfig
 
-        self.threadPool = ThreadPool(appConfig.get('/global/workersCount', raiseException=False) or 4)
+        self.threadPool = ThreadPool(appConfig.get(moduleConfiguration['moduleWorkersCount']))
         
         self.done = False
 

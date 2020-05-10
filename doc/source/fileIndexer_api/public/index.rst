@@ -6,6 +6,7 @@ public
    :maxdepth: 5
    :caption: Contents:
 
+   configDef
    configHandler
    fileHandleModule
    fileSystemModule

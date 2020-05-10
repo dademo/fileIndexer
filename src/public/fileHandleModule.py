@@ -23,10 +23,14 @@ class FileHandleModule(ABC):
     @abstractmethod
     def requiredModules(self) -> Iterable[str] or None:
         '''
-            List required modules. Their method :meth:`FileHandleModule.handle` will
-            be called before this object.
+            List required modules. Their method :meth:`FileHandleModule.handle`
+            will be called before this object.
 
-            :returns: A list of required modules (abolute path or class name) or ``None``.
+            Returned values can be a class name (as given by ``__class__``) or
+            a FQDN module class name.
+
+            :returns: A list of required modules (abolute path or class name)
+                        or ``None``.
             :rtype: Iterable[str]
         '''
         pass
@@ -35,8 +39,8 @@ class FileHandleModule(ABC):
     @abstractmethod
     def getDatabaseSchema(self) -> str:
         '''
-            Declares the database schema (used during the initialization to create all the
-            required schemas).
+            Declares the database schema (used during the initialization to create
+            all the required schemas).
 
             :returns: The name of the schema used by this module.
             :rtype: str
@@ -48,13 +52,15 @@ class FileHandleModule(ABC):
         '''
             Declares the tables used by this module using the given metadata.
 
-            :param metadata: The metadata to configure (using the schema given by :meth:`FileHandleModule.getDatabaseSchema`).
+            :param metadata: The metadata to configure (using the schema given
+                                by :meth:`FileHandleModule.getDatabaseSchema`).
             :type metadata: :class:`sqlalchemy.schema.MetaData`
             :param configuration: The application configuration.
             :type configuration: :class:`public.configHandler.ConfigHandler`
 
             .. note::
-                The declared tables should be saved in order to be retrieved with :meth:`FileHandleModule.getSharedtables`.
+                The declared tables should be saved in order to be retrieved
+                with :meth:`FileHandleModule.getSharedtables`.
         '''
         pass
 
@@ -72,9 +78,11 @@ class FileHandleModule(ABC):
     @abstractmethod
     def canHandle(self, fileDescriptor: FileDescriptor) -> bool:
         '''
-            Check whether this module can handle the given file (in addition to :meth:`FileHandleModule.handledFileMimes`).
+            Check whether this module can handle the given file (in addition to
+            :meth:`FileHandleModule.handledFileMimes`).
 
-            :param fileDescriptor: A file descriptor, used to check whether this module can handle this file.
+            :param fileDescriptor: A file descriptor, used to check whether this
+                                    module can handle this file.
             :type fileDescriptor: :class:`public.fileDescriptor.FileDescriptor`
             :returns: If this module can handle the given file.
             :rtype: bool
@@ -86,12 +94,14 @@ class FileHandleModule(ABC):
         '''
             Perform data extraction from the given file.
 
-            :param fileDescriptor: A file descriptor, used by the module to acquire informations.
+            :param fileDescriptor: A file descriptor, used by the module to acquire
+                                    informations.
             :type fileDescriptor: :class:`public.fileDescriptor.FileDescriptor`
             :param dbEngine: A SQLAlchemy engine to query the configured database.
             :type dbEngine: :class:`sqlalchemy.engine.Engine`
-            :param haveBeenModifier: Inform whether this file have been modified since last execution.
-                                        This information should be used in order to avoid useless processing.
+            :param haveBeenModifier: Inform whether this file have been modified since
+                                        last execution. This information should be used
+                                        in order to avoid useless processing.
             :type haveBeenModified: bool
         '''
         pass

@@ -4,6 +4,7 @@ from typing import Any, List
 import os
 import logging
 
+from public import ConfigDef
 from public import ConfiguratonError
 
 #from public import FileHandleModule, FileSystemModule
@@ -60,32 +61,29 @@ class ConfigHandler(object):
         '''
         return ConfigHandler(configPath, appPath)
 
-    def get(self, jsonPointer: str, raiseException: bool = True) -> Any:
+    def get(self, configuration: ConfigDef) -> Any:
         '''
             Get a configuration using a json path (with module :mod:`jsonpointer`, see :rfc:`6901`).
             ex: my/configuration/path
 
-            :param jsonPointer: The wanted config path.
-            :type jsonPointer: str
-            :param raiseException: If an exception should be raised if a configuration key have not been found.
-                                   If true and an exception have been raised, will return None
-            :type raiseException: bool
+            :param configuration: The wanted configuration.
+            :type configuration: :class:`public.configDef.ConfigDef`
 
             :returns: The configuration at designed path if found.
             :rtype: any
             :raises jsonpointer.JsonPointerException: A configuration have not been found or an invalid syntax.
         '''
         
-        if raiseException:
-            return jsonpointer.resolve_pointer(self._config, jsonPointer)
+        if configuration.required:
+            return jsonpointer.resolve_pointer(self._config, configuration.yamlPath)
         else:
             # Handling exception
             try:
-                return jsonpointer.resolve_pointer(self._config, jsonPointer)
+                return jsonpointer.resolve_pointer(self._config, configuration.yamlPath)
             except jsonpointer.JsonPointerException:
-                return None
+                return configuration.defaultValue
 
-    def getFileHandleModules(self) -> List[FileHandleModule]:
+    def getFileHandleModules(self) -> List['FileHandleModule']:
         '''
             Get all the app loaded file handle modules (injected by the main program).
 
@@ -94,7 +92,7 @@ class ConfigHandler(object):
         '''
         return self._fileHandleModules
 
-    def getFileSystemModules(self) -> List[FileSystemModule]:
+    def getFileSystemModules(self) -> List['FileSystemModule']:
         '''
             Get all the app loaded file system modules (injected by the main program).
 

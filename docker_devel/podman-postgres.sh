@@ -1,5 +1,7 @@
 #!/bin/sh
 
+SCRIPT_PATH="$(dirname $0)"
+
 DB_NAME="fileIndexer"
 DB_SCHEMAS="core"
 
@@ -7,7 +9,7 @@ DB_SCHEMAS="core"
 
 set -o xtrace
 
-podman build -t postgres-test postgres
+podman build -t postgres-test "${SCRIPT_PATH}/postgres"
 
 podman run \
     --rm \

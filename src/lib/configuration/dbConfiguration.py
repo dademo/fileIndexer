@@ -1,4 +1,6 @@
+from public import ConfigDef
+
 configuration = {
-    'sqliteConfigPath'          : "/global/sqliteDir",
-    'dbConnectionString'        : "/global/dbConnectionString",
+    'sqliteConfigPath'      : ConfigDef(shortName="sqliteConfigPath", required=False, yamlPath="/global/sqliteDir", defaultValue=None),
+    'dbConnectionString'    : ConfigDef(shortName="dbConnectionString", required=False, yamlPath="/global/dbConnectionString", defaultValue=None),
 }

@@ -1,4 +1,5 @@
-from .exceptions import ConfiguratonError
+from .exceptions import ConfiguratonError, DependencyException
+from .configDef import ConfigDef
 
 from .fileDescriptor import FileDescriptor
 from .configHandler import ConfigHandler

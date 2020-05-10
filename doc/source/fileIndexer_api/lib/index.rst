@@ -10,3 +10,4 @@ lib
    database/index
    messageDispatcher
    moduleLoader
+   dependencyTreeMaker
