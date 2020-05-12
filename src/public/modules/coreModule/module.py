@@ -57,11 +57,15 @@ class CoreModule(FileHandleModule):
     def getSharedTables(self) -> Dict[str, sqlalchemy.Table]:
         return self.tables.copy()
 
+    def haveBeenModified(self, fileDescriptor: FileDescriptor, dbEngine: sqlalchemy.engine.Engine) -> bool:
+        return DbQuerier(dbEngine, self).haveBeenModified(fileDescriptor)
+
     def canHandle(self, fileDescriptor: FileDescriptor) -> bool:
         # Handle everything
         return True
 
-    def handle(self, fileDescriptor: FileDescriptor, dbEngine: sqlalchemy.engine.Engine, haveBeenModified: bool) -> dict:
+    def handle(self, fileDescriptor: FileDescriptor, dbEngine: sqlalchemy.engine.Engine, haveBeenModified: bool) -> None:
+
         dbQuerier = DbQuerier(dbEngine, self)
         if not dbQuerier.isFileInDatabase(fileDescriptor):
             #logger.info('File [%s] not in the database' % fileDescriptor.getFileFullName())

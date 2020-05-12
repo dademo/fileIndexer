@@ -6,6 +6,7 @@ import logging
 import sys
 import os
 from urllib.parse import urlparse
+import signal
 
 from lib.database import getInitializedDb
 from lib.moduleLoader import loadModule
@@ -78,8 +79,24 @@ def sqlalchemyMergeMetaDatas(metaDatas: List[sqlalchemy.MetaData]):
 
 if __name__ == '__main__':
     
+    # Values
     appFileSystemModules = []
     appModules = []
+    applicationConfiguration = None
+    dbEngine = None
+    fsModule = None
+    messageDispatcher = None
+
+    def onAppClose(signum, stack):
+        logger.info('onAppClose: %s:%s' % (signum, stack))
+        logger.info("Catched end signal")
+        # Waiting for the dispatcher to end
+        if messageDispatcher:
+            messageDispatcher.setDone()
+            
+
+    signal.signal(signal.SIGINT, onAppClose)
+    signal.signal(signal.SIGTERM, onAppClose)
     
     applicationConfiguration = loadapplicationConfiguration(configPath = os.path.abspath(os.path.join(os.path.dirname(__file__) or '.', 'config.yaml')))
     dbEngine = getInitializedDb(applicationConfiguration)
@@ -103,8 +120,21 @@ if __name__ == '__main__':
     
     
     executionSteps = buildDependencyTree(applicationConfiguration.getFileHandleModules())
+
     logger.debug('Handling files')
+
     messageDispatcher = MessageDispatcher(applicationConfiguration)
-    for fileDecriptor in fsModule.listFiles():
-        messageDispatcher.dispatch(fileDecriptor, dbEngine)
-        # appModules[0].handle(fileDecriptor, dbEngine, applicationConfiguration)
+
+    import psycopg2
+    print(psycopg2.threadsafety)
+    print(dir(dbEngine))
+    print(dbEngine.dialect)
+    print(dbEngine.driver)
+    print(dbEngine.name)
+    print(dbEngine.pool)
+
+    # threadsafety
+
+    messageDispatcher.dispatch(fsModule, executionSteps, dbEngine)
+
+    exit(0)

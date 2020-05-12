@@ -41,19 +41,23 @@ class FileDescriptor(ABC):
 
     def getFileMagic(self, ms_flags=magicTools.MAGIC_FLAGS_DEFAULT):
 
-        with self.open(mode='rb') as buffer:
-            buffer = buffer.read(1024)
-            ms = magicTools.getMagic(ms_flags)
-            magic = ms.buffer(buffer)
-            if not magic:
-                logger.debug('Unable to get magic info (%s)' % ms.error())
-                buffer += buffer.read(-1)
+        try:
+            magicTools.acquireLock()
+            with self.open(mode='rb') as buffer:
+                buffer = buffer.read(1024)
+                ms = magicTools.getMagic(ms_flags)
+                magic = ms.buffer(buffer)
+                if not magic:
+                    logger.debug('Unable to get magic info (%s)' % ms.error())
+                    buffer += buffer.read(-1)
 
-            if not magic:
-                logger.error('Unable to get magic info (%s)' % ms.error())
-                return '__UNKNOWN__'
+                if not magic:
+                    logger.error('Unable to get magic info (%s)' % ms.error())
+                    return '__UNKNOWN__'
 
-            return magic
+                return magic
+        finally:
+            magicTools.releaseLock()
 
 
     def getFileMime(self):

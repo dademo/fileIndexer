@@ -24,6 +24,37 @@ class DbQuerier(object):
         self.table = moduleRef.getSharedTables()
 
 
+    def haveBeenModified(self, fileDescriptor: FileDescriptor):
+        '''
+            Check whether the file have been modified since last execution (from
+            the point of view of the coreModule). Used to inform other modules of
+            a modification.
+            
+            :param fileDescriptor: A file descriptor to search in the database.
+            :type fileDescriptor: :class:`public.fileDescriptor.FileDescriptor`
+
+            :return: Whether the file have been modified since last execution.
+            :rtype: bool
+        '''
+        table = self.table
+
+        s = select([
+                (table['file'].c.last_update == fileDescriptor.getModificationDateTime()).label('is_same_date')
+            ]).\
+            select_from(table['file'].join(table['file_path'])).\
+            where(and_(
+                table['file'].c.filename == fileDescriptor.getFileName(),
+                table['file_path'].c.path == fileDescriptor.getFilePath(),
+            ))
+
+        with self.dbEngine.connect() as dbConnection:
+            result = dbConnection.execute(s).first()
+            if result:
+                return not result['is_same_date']
+            else:
+                return True
+
+
     def isFileInDatabase(self, fileDescriptor: FileDescriptor) -> bool:
         '''
             Check whether the file description is in the database.
@@ -31,7 +62,7 @@ class DbQuerier(object):
             :param fileDescriptor: A file descriptor to search in the database.
             :type fileDescriptor: :class:`public.fileDescriptor.FileDescriptor`
 
-            :return: Wether the file is in the database.
+            :return: Whether the file is in the database.
             :rtype: bool
         '''
         
@@ -70,7 +101,7 @@ class DbQuerier(object):
 
         i = table['file_mime'].insert().values(mime=fileMime)
         
-        return dbTools.getSingletonEntity(s, i, self.dbEngine)
+        return dbTools.getSingletonEntity(s, i, self.dbEngine, 'fileMime', allowParallel=False)
 
 
     def getFileEncodingEntity(self, fileEncoding: str):
@@ -93,7 +124,7 @@ class DbQuerier(object):
 
         i = table['file_encoding'].insert().values(encoding=fileEncoding)
         
-        return dbTools.getSingletonEntity(s, i, self.dbEngine)
+        return dbTools.getSingletonEntity(s, i, self.dbEngine, 'fileEncoding', allowParallel=False)
 
 
     def getFilePathEntity(self, filePath: str):
@@ -116,7 +147,7 @@ class DbQuerier(object):
 
         i = table['file_path'].insert().values(path=filePath)
         
-        return dbTools.getSingletonEntity(s, i, self.dbEngine)
+        return dbTools.getSingletonEntity(s, i, self.dbEngine, 'filePath', allowParallel=False)
 
 
     def getFileEntity(self, fileDescriptor: FileDescriptor, fileMimeEntity: any, fileEncodingEntity: any, filePathEntity: any):
@@ -158,7 +189,7 @@ class DbQuerier(object):
             file_description=fileDescriptor.getFileDescription()
         )
         
-        return dbTools.getSingletonEntity(s, i, self.dbEngine)
+        return dbTools.getSingletonEntity(s, i, self.dbEngine, allowParallel=True)
 
     def addFileInDatabase(self, fileDescriptor: FileDescriptor) -> None:
         '''
@@ -171,6 +202,4 @@ class DbQuerier(object):
         fileMimeEntity = self.getFileMimeEntity(fileDescriptor.getFileMime())
         fileEncodingEntity = self.getFileEncodingEntity(fileDescriptor.getFileEncoding())
         filePathEntity = self.getFilePathEntity(fileDescriptor.getFilePath())
-        #logger.info(fileDescriptor.getFileName())
-        #logger.info(fileDescriptor.getFileDescription())
         fileEntity = self.getFileEntity(fileDescriptor, fileMimeEntity, fileEncodingEntity, filePathEntity)
