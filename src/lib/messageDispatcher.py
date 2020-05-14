@@ -8,6 +8,7 @@ import logging
 import traceback
 
 from lib.configuration import moduleConfiguration
+from lib.database import canDatabaseHandleParallelConnections
 
 from public import FileHandleModule, FileSystemModule
 from public.fileDescriptor import FileDescriptor
@@ -46,15 +47,37 @@ class MessageDispatcher(object):
         self._done = True
 
 
-    def dispatch(self, fileSystemModule: FileSystemModule, steps: List[List[FileHandleModule]], dbEngine: Engine) -> None:
+    def dispatch(self, steps: List[List[FileHandleModule]], dbEngine: Engine) -> None:
+        '''
+            Dispatch found files for each path configured.
 
-        def _errCallback(err):
-            logger.error("An error occured :\n%s" % repr(err))
+            It handles parallel processing if available (depends on the data source type, if it handles parallel
+            connections).
+
+            :param steps: Steps to execute. A step is a list of :class:`public.fileHandleModule.FileHandleModule`
+                            to process.
+            :type steps: List[List[:class:`public.fileHandleModule.FileHandleModule`]]
+            :param dbEngine: A database connection.
+            :type dbEngine: :class:`sqlalchemy.engine.Engine`
+        '''
 
 
         # import $(dbEngine.driver).threadsafety
         workResults = []
         ex = None
+        actualModuleCallCount = 1
+        totalModuleCallCount = len(list(itertools.chain(*steps))) * len(self.appConfig.getDataSources())
+        allowParallelExecution = canDatabaseHandleParallelConnections(dbEngine)
+
+        if not allowParallelExecution:
+            logger.info('Parallel execution will be disabled because the database API does not allow parallel connections')
+
+        def _errCallback(err):
+            logger.error("An error occured :\n%s" % repr(err))
+
+        def wait_all():
+            while len(workResults) > 0:
+                workResults.pop(0).wait()
         
         try:
             coreModule = list(filter(lambda m: m.__class__.__name__ == 'CoreModule', list(itertools.chain(*steps))))[0]
@@ -66,43 +89,55 @@ class MessageDispatcher(object):
 
         try:
             for stepId in range(0, len(steps)):
-                if self._done:
-                    break
-                logger.info('Processing step %02d of %02d' % (stepId+1, len(steps)))
+                logger.info('Processing step %(stepId)02d of %(stepLength)02d' % {'stepId': stepId+1, 'stepLength': len(steps)})
                 step = steps[stepId]
 
-                for module in step:
-                    if self._done:
-                        break
-                    logger.debug('Running module [%s]' % repr(module))
-                    for fileDescriptor in filter(
-                        lambda _fileDescriptor: any([fnmatch(_fileDescriptor.getFileMime(), moduleMime) for moduleMime in self._module_mimes(module)]),
-                        fileSystemModule.listFiles()):
+                for dataSource in self.appConfig.getDataSources():
+                    fileSystemModule = self.appConfig.getFileSystemModuleForDataSource(dataSource)
+                    logger.info('Processing [%s]' % dataSource)
 
-                        if not self._done:
-                            if module.canHandle(fileDescriptor):
+                    for module in step:
+                        logger.info('[%(actualModuleCallCount)03d-%(totalModuleCallCount)03d] Running module %(moduleName)s' % {
+                            'actualModuleCallCount':    actualModuleCallCount,
+                            'totalModuleCallCount':     totalModuleCallCount,
+                            'moduleName':               module.__class__.__name__,
+                        })
 
-                                if coreModule:
-                                    haveBeenModified = coreModule.haveBeenModified(fileDescriptor, dbEngine)
-                                else:
-                                    haveBeenModified = True
+                        for fileDescriptor in filter(
+                            lambda _fileDescriptor: any([fnmatch(_fileDescriptor.getFileMime(), moduleMime) for moduleMime in self._module_mimes(module)]),
+                            fileSystemModule.listFiles()):
 
-                                workResults.append(
-                                    self.threadPool.apply_async(module.handle, args=(fileDescriptor, dbEngine, haveBeenModified), error_callback=_errCallback)
-                                    #self.threadPool.apply(module.handle, args=(fileDescriptor, dbEngine, haveBeenModified))
-                                )
-                        else:
-                            break
+                            if not self._done:
+                                if module.canHandle(fileDescriptor):
+
+                                    if coreModule:
+                                        haveBeenModified = coreModule.haveBeenModified(fileDescriptor, dbEngine)
+                                    else:
+                                        haveBeenModified = True
+
+                                    if allowParallelExecution:
+                                        workResults.append(
+                                            self.threadPool.apply_async(module.handle, args=(fileDescriptor, dbEngine, haveBeenModified), error_callback=_errCallback)
+                                            #self.threadPool.apply(module.handle, args=(fileDescriptor, dbEngine, haveBeenModified))
+                                        )
+                                    else:
+                                        # Single call
+                                        try:
+                                            module.handle(fileDescriptor, dbEngine, haveBeenModified)
+                                        except Exception as ex:
+                                            _errCallback(ex)
+                            else:
+                                return
+
+                        actualModuleCallCount += 1
                 
                 # We wait for all jobs to process before the next step
-                while len(workResults) > 0 and not self._done:
-                    workResults.pop(0).wait()
+                wait_all()
 
         except Exception as _ex:
             ex = _ex
             logger.info("Waiting for all to close (%d elements)" % len(workResults))
-            while len(workResults) > 0:
-                workResults.pop(0).wait()
+            wait_all()
             # Terminating pool avoid being hung when shutdown
             self.threadPool.terminate()
                 

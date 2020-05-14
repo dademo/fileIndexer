@@ -47,7 +47,7 @@ class ConfigDef(object):
     def kwargs(self) -> dict:
         return self._kwargs.copy()
 
-    def __init__(self, shortName: str, yamlPath: str, required: bool = False, defaultValue: Any = None, **kwargs):
+    def __init__(self, shortName: str, yamlPath: str, required: bool = False, defaultValue: Any = None, onMissing: str = "Missing value for path [%s]" % yamlPath, **kwargs):
 
         self._shortName = shortName
         self._yamlPath = yamlPath

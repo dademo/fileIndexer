@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, List
 import os
+from urllib.parse import urlparse
 import logging
 
 from public import ConfigDef
@@ -39,8 +40,10 @@ class ConfigHandler(object):
         logger.info('Configuration loaded')
 
         self._appPath = appPath
-        self._fileHandleModules = None
-        self._fileSystemModules = None
+        self._appDataSourcesCfg = None
+        self._threadSafety = None
+        self._fileHandleModules = []
+        self._fileSystemModules = []
 
         if not self._config:
             raise ConfiguratonError("Unable to load configuration at path [%s]" % configPath)
@@ -101,6 +104,22 @@ class ConfigHandler(object):
         '''
         return self._fileSystemModules
 
+    def getFileSystemModuleForDataSource(self, dataSource: str):
+
+        def fileSystemModuleHandleScheme(fileSystemModule: 'FileSystemModule', scheme: str):
+            moduleAllSchemes = fileSystemModule.handledURLSchemes()
+            if not isinstance(moduleAllSchemes, list):
+                moduleAllSchemes = list(moduleAllSchemes)
+            return any(map(lambda moduleScheme: moduleScheme == scheme, moduleAllSchemes))
+
+        parsedResult = urlparse(dataSource)
+        for fileSystemModule in self.getFileSystemModules():
+            if fileSystemModuleHandleScheme(fileSystemModule, parsedResult.scheme or 'file'):
+                fileSystemModule.connect(parsedResult, self)
+                return fileSystemModule
+
+        raise RuntimeError('No moduke found for data source [%s]' % dataSource)
+
     def getAppPath(self) -> str:
         '''
             Return the application path.
@@ -109,3 +128,18 @@ class ConfigHandler(object):
             :rtype: str
         '''
         return self._appPath
+
+    def getDataSources(self) -> List[str]:
+        '''
+            Return configured data sources. If a single value is configured it will
+            be replaced by a list.
+
+            :returns: Configured data sources.
+            :rtype: List[str]
+        '''
+        _dataSource = self.get(self._appDataSourcesCfg)
+
+        if not isinstance(_dataSource, list):
+            _dataSource = [ _dataSource ]
+
+        return _dataSource

@@ -36,4 +36,7 @@ class LocalFileSystemModule(FileSystemModule):
                 raise RuntimeError('Expect to list files using a relative path but relative location not given')
             searchPath = os.path.join(searchPath, self.relativePath)
 
-        return itertools.chain.from_iterable(map(lambda filename: LocalFileDescriptor(os.path.join(dirpath, filename)), filenames) for dirpath, dirnames, filenames in os.walk(searchPath))
+        return itertools.chain.from_iterable(
+            map(lambda filename: LocalFileDescriptor(os.path.join(dirpath, filename)), filenames)
+            for dirpath, dirnames, filenames in os.walk(searchPath)
+        )

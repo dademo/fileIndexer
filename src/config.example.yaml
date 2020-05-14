@@ -8,7 +8,9 @@ global:
     fileSystemModules:
         - public.modules.LocalFileSystemModule
     workersCount: 2
-    
+    dataSources:
+        - file:///home/dademo/Musique
+        - /home/dademo/Vidéos
 
 core:
     workers: 4

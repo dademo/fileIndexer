@@ -5,7 +5,6 @@ from atexit import register
 import logging
 import sys
 import os
-from urllib.parse import urlparse
 import signal
 
 from lib.database import getInitializedDb
@@ -31,7 +30,7 @@ __defaultFileSystemModules = [ 'public.modules.LocalFileSystemModule' ]
 __defaultFileHandleModules = [ 'public.modules.CoreModule' ]
 
 
-def loadapplicationConfiguration(configPath: str) -> ConfigHandler:
+def loadApplicationConfiguration(configPath: str) -> ConfigHandler:
     '''
         Loads the application configuration and loads the configured modules
         (default and specified in configuration).
@@ -62,7 +61,10 @@ def loadapplicationConfiguration(configPath: str) -> ConfigHandler:
         )
     )
 
+    applicationConfiguration._appDataSourcesCfg = moduleConfiguration['appDataSources']
+
     return applicationConfiguration
+
 
 ## https://docs.python.org/fr/3/library/fnmatch.html
 '''
@@ -80,15 +82,12 @@ def sqlalchemyMergeMetaDatas(metaDatas: List[sqlalchemy.MetaData]):
 if __name__ == '__main__':
     
     # Values
-    appFileSystemModules = []
-    appModules = []
     applicationConfiguration = None
     dbEngine = None
-    fsModule = None
     messageDispatcher = None
 
     def onAppClose(signum, stack):
-        logger.info('onAppClose: %s:%s' % (signum, stack))
+        logger.debug('onAppClose: %s:%s' % (signum, stack))
         logger.info("Catched end signal")
         # Waiting for the dispatcher to end
         if messageDispatcher:
@@ -98,26 +97,12 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, onAppClose)
     signal.signal(signal.SIGTERM, onAppClose)
     
-    applicationConfiguration = loadapplicationConfiguration(configPath = os.path.abspath(os.path.join(os.path.dirname(__file__) or '.', 'config.yaml')))
+    applicationConfiguration = loadApplicationConfiguration(configPath = os.path.abspath(os.path.join(os.path.dirname(__file__) or '.', 'config.yaml')))
     dbEngine = getInitializedDb(applicationConfiguration)
 
-    #db = sqlalchemy.create_engine('sqlite:///:memory:', encoding='utf-8', echo=True)
-    #dbEngine = sqlalchemy.create_engine('sqlite:///db/core.db', encoding='utf-8', poolclass=sqlalchemy.pool.StaticPool, isolation_level=None)
-    #dbEngine = sqlalchemy.create_engine('postgresql://postgres:postgres@localhost/fileIndexer', encoding='utf-8', poolclass=sqlalchemy.pool.StaticPool, isolation_level=None)
-    #initializeDb(dbEngine, appModules, None)
 
-    from pprint import pprint
-    from public.modules.localFileSystemModule import LocalFileSystemModule
-
-    fsModule = LocalFileSystemModule()
-    fsModule.connect(urlparse('/home/dademo/Musique'), applicationConfiguration)
-    #pprint(list(map(lambda fileDesc: fileDesc.getFileFullName(), fsModule.listFiles())))
-    #print(list(map(lambda fileDesc: fileDesc.getFileStat(), fsModule.listFiles())))
-    #import magic
-    #print(list(map(lambda fileDesc: fileDesc.getFileMime(), fsModule.listFiles())))
-    #print(list(map(lambda fileDesc: "%s: %s" % (fileDesc.getFileName(), fileDesc.getFileMime(ms_flags=magic.NONE)), fsModule.listFiles())))
-    #print('-\n'.join(map(lambda fileDesc: "%s: %s|%s" % (fileDesc.getFileName(), fileDesc.getFileMime(), fileDesc.getFileMime(ms_flags=magic.NONE)), fsModule.listFiles())))
-    
+    # fsModule = LocalFileSystemModule()
+    # fsModule.connect(urlparse('/home/dademo/Musique'), applicationConfiguration)
     
     executionSteps = buildDependencyTree(applicationConfiguration.getFileHandleModules())
 
@@ -125,16 +110,8 @@ if __name__ == '__main__':
 
     messageDispatcher = MessageDispatcher(applicationConfiguration)
 
-    import psycopg2
-    print(psycopg2.threadsafety)
-    print(dir(dbEngine))
-    print(dbEngine.dialect)
-    print(dbEngine.driver)
-    print(dbEngine.name)
-    print(dbEngine.pool)
-
     # threadsafety
 
-    messageDispatcher.dispatch(fsModule, executionSteps, dbEngine)
+    messageDispatcher.dispatch(executionSteps, dbEngine)
 
     exit(0)

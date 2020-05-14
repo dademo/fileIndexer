@@ -4,3 +4,5 @@ from .dbConfigurator import getInitializedDb
 
 from .dbInitializer import initializeDb
 from .dbConnector import getDbEngine
+
+from .tools import getDbEngineThreadSafety, canDatabaseHandleParallelConnections

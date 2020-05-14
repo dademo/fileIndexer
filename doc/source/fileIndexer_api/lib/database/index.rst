@@ -9,3 +9,4 @@ database module
    dbConnector
    dbInitializer
    dbConfigurator
+   tools
