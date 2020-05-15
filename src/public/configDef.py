@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Callable
 
 class ConfigDef(object):
     '''
@@ -36,23 +36,29 @@ class ConfigDef(object):
         return self._yamlPath
 
     @property
+    def required(self) -> bool:
+        return self._required
+
+    @property
     def defaultValue(self) -> Any:
         return self._defaultValue
 
     @property
-    def required(self) -> bool:
-        return self._required
+    def getter(self) -> Callable[['ConfigDef', dict], Any]:
+        return self._getter
 
     @property
     def kwargs(self) -> dict:
         return self._kwargs.copy()
 
-    def __init__(self, shortName: str, yamlPath: str, required: bool = False, defaultValue: Any = None, onMissing: str = "Missing value for path [%s]" % yamlPath, **kwargs):
+    def __init__(self, shortName: str, yamlPath: str, required: bool = False, defaultValue: Any = None,
+                getter: Callable[['ConfigDef', dict], Any] = None, onMissing: str = "Missing value for path [%s]" % yamlPath, **kwargs):
 
         self._shortName = shortName
         self._yamlPath = yamlPath
         self._required = required
         self._defaultValue = defaultValue
+        self._getter = getter
         self._kwargs = kwargs
 
     def __getattr__(self, name: str):

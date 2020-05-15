@@ -8,3 +8,4 @@ configuration module
 
    dbConfiguration
    moduleConfiguration
+   getters/index

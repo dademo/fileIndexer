@@ -76,13 +76,18 @@ class ConfigHandler(object):
             :rtype: any
             :raises jsonpointer.JsonPointerException: A configuration have not been found or an invalid syntax.
         '''
+
+        def _default_getter(_configuration: ConfigDef, config: dict):
+            return jsonpointer.resolve_pointer(config, _configuration.yamlPath)
+
+        configGetter = configuration.getter or _default_getter
         
         if configuration.required:
-            return jsonpointer.resolve_pointer(self._config, configuration.yamlPath)
+            return configGetter(configuration, self._config)
         else:
             # Handling exception
             try:
-                return jsonpointer.resolve_pointer(self._config, configuration.yamlPath)
+                return configGetter(configuration, self._config)
             except jsonpointer.JsonPointerException:
                 return configuration.defaultValue
 
@@ -129,13 +134,17 @@ class ConfigHandler(object):
         '''
         return self._appPath
 
-    def getDataSources(self) -> List[str]:
+    def getDataSources(self) -> List[dict]:
         '''
             Return configured data sources. If a single value is configured it will
             be replaced by a list.
 
+            The dict keys are :
+                - path
+                - ignorePaths
+
             :returns: Configured data sources.
-            :rtype: List[str]
+            :rtype: List[dict]
         '''
         _dataSource = self.get(self._appDataSourcesCfg)
 

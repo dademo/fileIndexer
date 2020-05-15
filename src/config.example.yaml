@@ -9,7 +9,15 @@ global:
         - public.modules.LocalFileSystemModule
     workersCount: 2
     dataSources:
-        - file:///home/dademo/Musique
+        - path: file:///home/dademo/Musique
+          ignorePatterns:
+            - "*/.git/*"
+            - "*/node_modules/*"
+            - "*/.gem/**"
+            - "*/vendor/**"
+            - "*/lib/*"
+            - "*/lib64/*"
+            - "*/bin/*"
         - /home/dademo/Vidéos
 
 core:

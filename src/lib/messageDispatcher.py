@@ -43,7 +43,6 @@ class MessageDispatcher(object):
 
 
     def setDone(self):
-        print('setDone')
         self._done = True
 
 
@@ -93,8 +92,8 @@ class MessageDispatcher(object):
                 step = steps[stepId]
 
                 for dataSource in self.appConfig.getDataSources():
-                    fileSystemModule = self.appConfig.getFileSystemModuleForDataSource(dataSource)
-                    logger.info('Processing [%s]' % dataSource)
+                    fileSystemModule = self.appConfig.getFileSystemModuleForDataSource(dataSource['path'])
+                    logger.info('Processing [%s]' % dataSource['path'])
 
                     for module in step:
                         logger.info('[%(actualModuleCallCount)03d-%(totalModuleCallCount)03d] Running module %(moduleName)s' % {
