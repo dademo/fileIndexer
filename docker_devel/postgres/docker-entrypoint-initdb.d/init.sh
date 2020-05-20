@@ -4,7 +4,9 @@ set -e
 export APP_DB_NAME="fileIndexer"
 export SCHEMAS="core
 video
-audio"
+audio
+epub
+document"
 
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
     CREATE DATABASE "${APP_DB_NAME}";

@@ -6,6 +6,7 @@
 /include
 /lib
 /lib64
+/share
 
 # Python
 __pycache__
