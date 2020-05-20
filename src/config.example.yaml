@@ -18,6 +18,7 @@ global:
             - "*/lib/*"
             - "*/lib64/*"
             - "*/bin/*"
+            followSymlinks: false
         - /home/dademo/Vidéos
 
 core:

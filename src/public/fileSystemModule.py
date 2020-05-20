@@ -19,5 +19,5 @@ class FileSystemModule(ABC):
         pass
 
     @abstractmethod
-    def listFiles(self) -> Iterable[FileDescriptor]:
+    def listFiles(self,  ignorePatterns: List[str] = [], followSymlinks: bool=False) -> Iterable[FileDescriptor]:
         pass

@@ -4,6 +4,8 @@ from public import FileHandleModule, ConfigHandler, FileDescriptor
 
 import sqlalchemy
 
+import mutagen
+
 
 class AudioFileModule(FileHandleModule):
 
@@ -29,8 +31,12 @@ class AudioFileModule(FileHandleModule):
 
     # Processing
     def canHandle(self, fileDescriptor: FileDescriptor) -> bool:
-        # Can basicly handle any type of audio file
-        return True
+        # Can basicly handle any type of audio file which have tags embedded
+        noTagMimes = [
+            'audio/x-wav'
+        ]
+        file_mime = fileDescriptor.getFileMime()
+        return not any(map(lambda m: file_mime == m, noTagMimes))
 
 
     def handle(self, fileDescriptor: FileDescriptor, dbEngine: sqlalchemy.engine.Engine, haveBeenModified: bool) -> None:
@@ -45,4 +51,13 @@ class AudioFileModule(FileHandleModule):
                                         This information should be used in order to avoid useless processing.
             :type haveBeenModified: bool
         '''
+        with fileDescriptor.open() as _file:
+            mutagenFile = mutagen.File(_file)
+            try:
+                print(mutagenFile)
+                print(mutagenFile.info)
+                print(mutagenFile.tags)
+            except Exception as ex:
+                print('Got exception [%s]' % repr(ex))
+                print('Error with file [%s]' % fileDescriptor.getFileFullPath())
         pass

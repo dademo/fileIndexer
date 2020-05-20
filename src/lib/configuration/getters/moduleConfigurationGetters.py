@@ -10,13 +10,17 @@ def getAppDataSources(configuration: ConfigDef, config: dict) -> List[dict]:
         if isinstance(value, str):
             return {
                 'path': value,
-                'ignorePatterns': []
+                'ignorePatterns': [],
+                'followSymlinks': False,
             }
         elif isinstance(value, dict):
             base = {
                 'path': '',
-                'ignorePatterns': ''
+                'ignorePatterns': [],
+                'followSymlinks': False,
             }
+            if 'ignorePatterns' in value and isinstance(value['ignorePatterns'], str):
+                value['ignorePatterns'] = [ value['ignorePatterns'] ]
             base.update(value)
             return base
         else:
