@@ -1,6 +1,7 @@
 from public.fileSystemModule import FileSystemModule
 from public.fileDescriptor import FileDescriptor
 from public.configHandler import ConfigHandler
+from public.configuration import moduleConfiguration
 
 from .localFileDescriptor import LocalFileDescriptor
 
@@ -20,9 +21,8 @@ logger = logging.getLogger('fileIndexer').getChild(
 
 class LocalFileSystemModule(FileSystemModule):
 
-    def __init__(self, relativePath=None):
+    def __init__(self):
         self.basePath = None
-        self.relativePath = relativePath
 
     @staticmethod
     def handledURLSchemes() -> str or List[str] or Iterable[str]:
@@ -30,6 +30,7 @@ class LocalFileSystemModule(FileSystemModule):
 
     def connect(self, parsedUri: ParseResult, config: ConfigHandler) -> None:
         self.basePath = parsedUri.path
+        self.config = config
 
     def listFiles(self, ignorePatterns: List[str] = [], followSymlinks: bool = False) -> Iterable[FileDescriptor]:
 
@@ -53,14 +54,10 @@ class LocalFileSystemModule(FileSystemModule):
 
         searchPath = self.basePath
         if not os.path.isabs(searchPath):
-            if not self.relativePath:
+            relativePath = self.config.get(moduleConfiguration['relativePath'])
+            if not relativePath:
                 raise RuntimeError(
                     'Expect to list files using a relative path but relative location not given')
-            searchPath = os.path.join(searchPath, self.relativePath)
+            searchPath = os.path.join(searchPath, relativePath)
 
-        # return itertools.chain.from_iterable(
-        #     map(lambda filename: LocalFileDescriptor(
-        #         os.path.join(dirpath, filename)), filenames)
-        #     for dirpath, dirnames, filenames in os.walk(searchPath)
-        # )
         return list_dir_content(searchPath)

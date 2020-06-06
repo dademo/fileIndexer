@@ -35,29 +35,19 @@ class AudioFileModule(FileHandleModule):
         noTagMimes = [
             'audio/x-wav'
         ]
-        file_mime = fileDescriptor.getFileMime()
-        return not any(map(lambda m: file_mime == m, noTagMimes))
+        return not any(map(lambda m: fileDescriptor.mime == m, noTagMimes))
 
 
     def handle(self, fileDescriptor: FileDescriptor, dbEngine: sqlalchemy.engine.Engine, haveBeenModified: bool) -> None:
-        '''
-            Perform data extraction from the given file.
-
-            :param fileDescriptor: A file descriptor, used by the module to acquire informations.
-            :type fileDescriptor: :class:`public.fileDescriptor.FileDescriptor`
-            :param dbEngine: A SQLAlchemy engine to query the configured database.
-            :type dbEngine: :class:`sqlalchemy.engine.Engine`
-            :param haveBeenModifier: Inform whether this file have been modified since last execution.
-                                        This information should be used in order to avoid useless processing.
-            :type haveBeenModified: bool
-        '''
+        
         with fileDescriptor.open() as _file:
             mutagenFile = mutagen.File(_file)
             try:
-                print(mutagenFile)
-                print(mutagenFile.info)
-                print(mutagenFile.tags)
+                pass
+                # print(mutagenFile)
+                # print(mutagenFile.info)
+                # print(mutagenFile.tags)
             except Exception as ex:
                 print('Got exception [%s]' % repr(ex))
-                print('Error with file [%s]' % fileDescriptor.getFileFullPath())
+                print('Error with file [%s]' % fileDescriptor.fullPath)
         pass

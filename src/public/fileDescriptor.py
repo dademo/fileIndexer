@@ -4,42 +4,81 @@ import datetime
 import os
 import logging
 from typing import IO
+from functools import cached_property
 
 import public.magicTools as magicTools
 import magic
 
 logger = logging.getLogger('fileIndexer').getChild('public.FileDescriptor')
 
+
 class FileDescriptor(ABC):
 
+    @cached_property
+    def stat(self) -> os.stat_result:
+        return self._getStat()
+        
+    @property
+    def path(self):
+        return self._getPath()
+
+    @property
+    def name(self):
+        return self._getName()
+
+    @property
+    def fullPath(self):
+        return self._getFullPath()
+
+    @property
+    def schemeAndHost(self):
+        return self._getSchemeAndHost()
+
+    @property
+    def sizeKB(self):
+        return self._getSizeKB()
+
+    @property
+    def creationDateTime(self):
+        return self._getCreationDateTime()
+
+    @property
+    def modificationDateTime(self):
+        return self._getModificationDateTime()
+
+
     @abstractmethod
-    def getStat(self) -> os.stat_result:
+    def _getStat(self) -> os.stat_result:
         pass
 
     @abstractmethod
-    def open(self, mode='rb', buffering=-1) -> IO:
+    def open(self, mode='rb', buffering=-1, **kwargs) -> IO:
+        pass
+
+    def _getPath(self) -> str:
+        return os.path.dirname(self.fullPath)
+
+    def _getName(self) -> str:
+        return os.path.basename(self.fullPath)
+
+    @abstractmethod
+    def _getFullPath(self) -> str:
         pass
 
     @abstractmethod
-    def getFileFullPath(self) -> str:
+    def _getSchemeAndHost(self) -> str:
         pass
 
-    def getFileName(self) -> str:
-        return os.path.basename(self.getFileFullPath())
+    def _getSizeKB(self) -> int:
+        return int(self.stat.st_size / 1024)
 
-    def getFilePath(self) -> str:
-        return os.path.dirname(self.getFileFullPath())
+    def _getCreationDateTime(self) -> datetime.datetime:
+        return datetime.datetime.fromtimestamp(self.stat.st_ctime)
 
-    def getFileSizeKB(self) -> int:
-        return int(self.getStat().st_size / 1024)
+    def _getModificationDateTime(self) -> datetime.datetime:
+        return datetime.datetime.fromtimestamp(self.stat.st_mtime)
 
-    def getCreationDateTime(self):
-        return datetime.datetime.fromtimestamp(self.getStat().st_ctime)
-
-    def getModificationDateTime(self):
-        return datetime.datetime.fromtimestamp(self.getStat().st_mtime)
-
-    def getFileMagic(self, ms_flags=magicTools.MAGIC_FLAGS_DEFAULT):
+    def _getFileMagic(self, ms_flags=magicTools.MAGIC_FLAGS_DEFAULT) -> str:
 
         try:
             magicTools.acquireLock()
@@ -59,12 +98,14 @@ class FileDescriptor(ABC):
         finally:
             magicTools.releaseLock()
 
+    @cached_property
+    def mime(self) -> str:
+        return self._getFileMagic(ms_flags=magic.MIME_TYPE)
 
-    def getFileMime(self):
-        return self.getFileMagic(ms_flags=magic.MIME_TYPE)
+    @cached_property
+    def encoding(self) -> str:
+        return self._getFileMagic(ms_flags=magic.MIME_ENCODING)
 
-    def getFileEncoding(self):
-        return self.getFileMagic(ms_flags=magic.MIME_ENCODING)
-
-    def getFileDescription(self):
-        return self.getFileMagic(ms_flags=magic.NONE)
+    @cached_property
+    def description(self) -> str:
+        return self._getFileMagic(ms_flags=magic.NONE)

@@ -7,12 +7,18 @@ class LocalFileDescriptor(FileDescriptor):
 
     def __init__(self, fileFullPath):
         self.fileFullPath = fileFullPath
+        self._cachedStat = None
 
-    def open(self, mode='rb', buffering=-1) -> IO:
-        return open(self.fileFullPath, mode=mode, buffering=buffering)
+    def open(self, mode='rb', buffering=-1, **kwargs) -> IO:
+        return open(self.fileFullPath, mode=mode, buffering=buffering, **kwargs)
 
-    def getFileFullPath(self) -> str:
+    def _getFullPath(self) -> str:
         return os.path.abspath(self.fileFullPath)
 
-    def getStat(self) -> os.stat_result:
-        return os.stat(self.getFileFullPath())
+    def _getSchemeAndHost(self) -> str:
+        return 'file://'
+
+    def _getStat(self) -> os.stat_result:
+        if not self._cachedStat:
+            self._cachedStat = os.stat(self.fileFullPath)
+        return self._cachedStat

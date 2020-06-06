@@ -38,7 +38,9 @@ class CoreModule(FileHandleModule):
         ##
         self.tables['file_path'] = sqlalchemy.Table('file_path', metadata,
             sqlalchemy.Column('id', sqlalchemy.Integer, sqlalchemy.Sequence('file_path_id_seq'), primary_key=True),
-            sqlalchemy.Column('path', sqlalchemy.String(4096), index=True, unique=True, nullable=False)
+            sqlalchemy.Column('path', sqlalchemy.String(4096), index=True, unique=False, nullable=False),
+            sqlalchemy.Column('scheme_host', sqlalchemy.String(255), index=True, unique=False, nullable=False),
+            sqlalchemy.UniqueConstraint('path', 'scheme_host', name='uniq_path_scheme_host')
         )
         ##
         self.tables['file'] = sqlalchemy.Table('file', metadata,

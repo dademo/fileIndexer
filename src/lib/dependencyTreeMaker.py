@@ -67,7 +67,7 @@ def buildDependencyTree(modules: Iterable[FileHandleModule]) -> List[List[FileHa
         return DependencyException(
             "Some modules have missing dependencies :%s\nPlease edit your configuration." % (''.join(
                 map(
-                    lambda m: '\n\t- [%(moduleName)s] is missing [%(requiredModules)s]\n' % {
+                    lambda m: '\n\t- [%(moduleName)s] is missing any of [%(requiredModules)s]\n' % {
                         'moduleName': _getFQDNName(m),
                         'requiredModules': ','.join(_requiredModules(m))
                     },

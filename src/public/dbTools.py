@@ -6,11 +6,10 @@ from sqlalchemy.sql.expression import Select, Insert
 
 logger = logging.getLogger('fileIndexer').getChild('public.dbTools')
 
-_allTableLocks = {}
 _globalLock = Lock()
 
 
-def getSingletonEntity(selectStatement, insertStatement, dbEngine: sqlalchemy.engine.Engine, lock: bool=False, allowParallel: bool=False):
+def getSingletonEntity(selectStatement: Select, insertStatement: Insert, dbEngine: sqlalchemy.engine.Engine, lock: bool=False, allowParallel: bool=False):
     '''
         Get a singleton entity using the given selectStatement or insertStatement.
 
@@ -36,6 +35,7 @@ def getSingletonEntity(selectStatement, insertStatement, dbEngine: sqlalchemy.en
     with dbEngine.connect() as dbConnection:
         if lock:
             with _globalLock:
+                
                 entity = dbConnection.execute(selectStatement).first()
 
                 if not entity:

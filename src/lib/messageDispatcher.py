@@ -1,5 +1,5 @@
 import os
-from threading import Thread
+from threading import Thread, Timer
 from fnmatch import fnmatch
 from typing import List, Iterable
 from threading import Lock
@@ -7,22 +7,72 @@ import itertools
 import logging
 import traceback
 
-from lib.configuration import moduleConfiguration
 from lib.database import canDatabaseHandleParallelConnections
 
 from public import FileHandleModule, FileSystemModule
 from public.fileDescriptor import FileDescriptor
 from public.configHandler import ConfigHandler
+from public.configuration import moduleConfiguration
 
 from multiprocessing.pool import ThreadPool
 import multiprocessing.dummy
-#from multiprocessing.dummy import DummyProcess
 from multiprocessing.pool import ThreadPool
 
 from sqlalchemy.engine import Engine
 
 logger = logging.getLogger('fileIndexer').getChild('lib.MessageDispatcher')
 
+
+class CachedFileDescriptorsIterator(object):
+    '''
+        A simple :class:`public.FileSystemModule` iterator that keep in cache
+        the first returned values.
+
+        Used instead of keeping values in a simple list, blocking the program
+        while all files have not been listed by the module.
+    '''
+    
+    def __init__(self, fileSystemModule: FileSystemModule, ignorePatterns: List[str], followSymlinks: bool):
+        '''
+        ..note::
+
+            These parameters will be given to the
+            :meth:`public.fileSystemModule.FileSystemModule.listFiles` method.
+
+            
+            :param fileSystemModule: The module which is listing files.
+            :type fileSystemModule: public.fileSystemModule.FileSystemModule
+            :param ignorePatterns: Patterns to ignore.
+            :type ignorePatterns: List[str]
+            :param followSymlinks: Does the listing follow links.
+            :type followSymlinks: bool
+        '''
+        self._fileSystemModule = fileSystemModule
+        self._ignorePatterns = ignorePatterns
+        self._followSymlinks = followSymlinks
+        self._cache = None
+        self._iter = None
+        self._iterPos = 0
+
+    def __iter__(self):
+        if not self._cache:
+            self._iter = self._fileSystemModule.listFiles(ignorePatterns=self._ignorePatterns, followSymlinks=self._followSymlinks)
+            self._cache = []
+        else:
+            self._iterPos = 0
+        return self
+
+    def __next__(self):
+        if self._iter:
+            v = next(self._iter)
+            self._cache.append(v)
+            return v
+        else:
+            self._iterPos += 1
+            if self._iterPos == len(self._cache):
+                raise StopIteration
+            else:
+                return self._cache[self._iterPos-1]
 
 class MessageDispatcher(object):
 
@@ -34,12 +84,13 @@ class MessageDispatcher(object):
             moduleConfiguration['moduleWorkersCount']))
 
         self._done = False
+        self._showThreadLength = True
 
     def __del__(self):
         '''
             Closes the thread pool on close.
         '''
-        self.threadPool.close()
+        self.threadPool.terminate()
         try:
             self.threadPool.join()
         except Exception as ex:
@@ -72,8 +123,7 @@ class MessageDispatcher(object):
         workResults = []
         ex = None
         actualModuleCallCount = 1
-        totalModuleCallCount = len(list(itertools.chain(
-            *steps))) * len(self.appConfig.getDataSources())
+        totalModuleCallCount = len(list(itertools.chain(*steps)))
         allowParallelExecution = canDatabaseHandleParallelConnections(dbEngine)
 
         if not allowParallelExecution:
@@ -81,9 +131,10 @@ class MessageDispatcher(object):
                 'Parallel execution will be disabled because the database API does not allow parallel connections')
 
         def _errCallback(err):
+            # logger.error("An error occured :\n%s" % repr(err))
             logger.error("An error occured :\n%s" % repr(err))
 
-        def wait_all():
+        def waitAll():
             while len(workResults) > 0:
                 if not self._done:
                     workResults.pop(0).wait()
@@ -94,26 +145,37 @@ class MessageDispatcher(object):
                     self.threadPool.join()
                     return
 
-        def runHandle(coreModule, currentModule, fileDescriptor):
-            if any(map(
-                lambda _mime: fnmatch(fileDescriptor.getFileMime(), _mime),
-                self._module_mimes(currentModule)
-            )):
-                if not self._done:
-                    if currentModule.canHandle(fileDescriptor):
+        def runHandle(coreModule: 'CoreModule', currentModule: FileHandleModule, fileDescriptor: FileDescriptor):
+            try:
+                if any(map(
+                    lambda _mime: fnmatch(fileDescriptor.mime, _mime),
+                    self._module_mimes(currentModule)
+                )):
+                    if not self._done:
+                        if currentModule.canHandle(fileDescriptor):
 
-                        if coreModule:
-                            haveBeenModified = coreModule.haveBeenModified(
-                                fileDescriptor, dbEngine)
-                        else:
-                            haveBeenModified = True
+                            if coreModule:
+                                haveBeenModified = coreModule.haveBeenModified(fileDescriptor, dbEngine)
+                            else:
+                                # CoreModule have not been loaded, default
+                                haveBeenModified = True
 
-                        currentModule.handle(
-                            fileDescriptor, dbEngine, haveBeenModified)
+                            currentModule.handle(
+                                fileDescriptor, dbEngine, haveBeenModified)
+            except Exception as ex:
+                logger.exception("An error occured while running module [%s] on file [%s]" % (currentModule.__class__, fileDescriptor.fullPath))
+
+        def printJobStatus():
+            if self._showThreadLength:
+                Timer(5.0, printJobStatus).start()
+                if len(workResults) > 0:
+                    logger.info('%d files to process' % len(workResults))
 
         try:
-            coreModule = list(filter(lambda m: m.__class__.__name__ ==
-                                     'CoreModule', list(itertools.chain(*steps))))[0]
+            coreModule = list(filter(
+                lambda m: m.__class__.__name__ == 'CoreModule',
+                list(itertools.chain(*steps))
+            )).pop()
         except IndexError:
             coreModule = None
 
@@ -121,25 +183,30 @@ class MessageDispatcher(object):
             logger.debug('CoreModule is not loaded')
 
         try:
-            for stepId in range(0, len(steps)):
-                logger.info('Processing step %(stepId)02d of %(stepLength)02d' % {
-                            'stepId': stepId+1, 'stepLength': len(steps)})
-                step = steps[stepId]
+            printJobStatus()
+            for dataSource in self.appConfig.getDataSources():
+                fileSystemModule = self.appConfig.getFileSystemModuleForDataSource(dataSource['path'])
+                logger.info('Processing [%s]' % dataSource['path'])
+                # Cache for file descriptors to avoid excessive calls to get mimes etc
+                fileDescriptorIterator = CachedFileDescriptorsIterator(
+                    fileSystemModule=fileSystemModule,
+                    ignorePatterns=dataSource['ignorePatterns'],
+                    followSymlinks=dataSource['followSymlinks']
+                )
 
-                for dataSource in self.appConfig.getDataSources():
-                    fileSystemModule = self.appConfig.getFileSystemModuleForDataSource(
-                        dataSource['path'])
-                    logger.info('Processing [%s]' % dataSource['path'])
-                    logger.info('%d files' % len(list(fileSystemModule.listFiles(ignorePatterns=dataSource['ignorePatterns'], followSymlinks=dataSource['followSymlinks']))))
+                for stepId in range(0, len(steps)):
+                    logger.info('Processing step %(stepId)02d of %(stepLength)02d' % {
+                                'stepId': stepId+1, 'stepLength': len(steps)})
+                    step = steps[stepId]
 
                     for currentModule in step:
-                        logger.info('[%(actualModuleCallCount)03d-%(totalModuleCallCount)03d] Running module %(moduleName)s' % {
+                        logger.info('[%(actualModuleCallCount)02d of %(totalModuleCallCount)02d] Running module %(moduleName)s' % {
                             'actualModuleCallCount':    actualModuleCallCount,
                             'totalModuleCallCount':     totalModuleCallCount,
                             'moduleName':               currentModule.__class__.__name__,
                         })
 
-                        for fileDescriptor in fileSystemModule.listFiles(ignorePatterns=dataSource['ignorePatterns'], followSymlinks=dataSource['followSymlinks']):
+                        for fileDescriptor in fileDescriptorIterator:
                             if not self._done:
                                 if allowParallelExecution:
                                     workResults.append(
@@ -148,7 +215,7 @@ class MessageDispatcher(object):
                                         #self.threadPool.apply(module.handle, args=(fileDescriptor, dbEngine, haveBeenModified))
                                     )
                                 else:
-                                    # Single call
+                                    # Synchronous call
                                     try:
                                         runHandle(
                                             coreModule, currentModule, fileDescriptor)
@@ -163,55 +230,22 @@ class MessageDispatcher(object):
 
                         logger.info('Job prepared, waiting for all to complete ...')
                         # We wait for all jobs to process before the next step
-                        wait_all()
+                        waitAll()
                         logger.info('Done')
                         if self._done:
                             return
-
-                        actualModuleCallCount += 1
-
-                        '''
-                        for fileDescriptor in filter(
-                                lambda _fileDescriptor: any([fnmatch(_fileDescriptor.getFileMime(), moduleMime)
-                                                             for moduleMime in self._module_mimes(module)]),
-                                fileSystemModule.listFiles()):
-
-                            if not self._done:
-                                if module.canHandle(fileDescriptor):
-
-                                    if coreModule:
-                                        haveBeenModified = coreModule.haveBeenModified(
-                                            fileDescriptor, dbEngine)
-                                    else:
-                                        haveBeenModified = True
-
-                                    if allowParallelExecution:
-                                        workResults.append(
-                                            self.threadPool.apply_async(module.handle, args=(
-                                                fileDescriptor, dbEngine, haveBeenModified), error_callback=_errCallback)
-                                            #self.threadPool.apply(module.handle, args=(fileDescriptor, dbEngine, haveBeenModified))
-                                        )
-                                    else:
-                                        # Single call
-                                        try:
-                                            module.handle(
-                                                fileDescriptor, dbEngine, haveBeenModified)
-                                        except Exception as ex:
-                                            _errCallback(ex)
-                            else:
-                                return
-                        '''
 
         except Exception as _ex:
             ex = _ex
             logger.info("Waiting for all to close (%d elements)" %
                         len(workResults))
-            wait_all()
+            waitAll()
             # Terminating pool avoid being hung when shutdown
             self.threadPool.terminate()
-
-        if ex:
-            raise ex
+        finally:
+            self._showThreadLength = False
+            if ex:
+                raise ex
 
     def _module_mimes(self, module: FileHandleModule) -> List[str]:
         '''

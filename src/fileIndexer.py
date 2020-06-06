@@ -10,9 +10,9 @@ import signal
 from lib.database import getInitializedDb
 from lib.moduleLoader import loadModule
 from lib.messageDispatcher import MessageDispatcher
-from lib.configuration import moduleConfiguration
 from lib.dependencyTreeMaker import buildDependencyTree
 from public import FileHandleModule, FileSystemModule, ConfigHandler
+from public.configuration import moduleConfiguration
 
 import sqlalchemy
 

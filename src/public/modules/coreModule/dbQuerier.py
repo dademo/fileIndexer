@@ -39,12 +39,12 @@ class DbQuerier(object):
         table = self.table
 
         s = select([
-                (table['file'].c.last_update == fileDescriptor.getModificationDateTime()).label('is_same_date')
+                (table['file'].c.last_update == fileDescriptor.modificationDateTime).label('is_same_date')
             ]).\
             select_from(table['file'].join(table['file_path'])).\
             where(and_(
-                table['file'].c.filename == fileDescriptor.getFileName(),
-                table['file_path'].c.path == fileDescriptor.getFilePath(),
+                table['file'].c.filename == fileDescriptor.name,
+                table['file_path'].c.path == fileDescriptor.path,
             ))
 
         with self.dbEngine.connect() as dbConnection:
@@ -73,8 +73,8 @@ class DbQuerier(object):
             ]).\
             select_from(table['file'].join(table['file_path'])).\
             where(and_(
-                table['file'].c.filename == fileDescriptor.getFileName(),
-                table['file_path'].c.path == fileDescriptor.getFilePath(),
+                table['file'].c.filename == fileDescriptor.name,
+                table['file_path'].c.path == fileDescriptor.path,
             ))
 
         with self.dbEngine.connect() as dbConnection:
@@ -101,7 +101,7 @@ class DbQuerier(object):
 
         i = table['file_mime'].insert().values(mime=fileMime)
         
-        return dbTools.getSingletonEntity(s, i, self.dbEngine, 'fileMime', allowParallel=False)
+        return dbTools.getSingletonEntity(s, i, self.dbEngine)
 
 
     def getFileEncodingEntity(self, fileEncoding: str):
@@ -124,14 +124,16 @@ class DbQuerier(object):
 
         i = table['file_encoding'].insert().values(encoding=fileEncoding)
         
-        return dbTools.getSingletonEntity(s, i, self.dbEngine, 'fileEncoding', allowParallel=False)
+        return dbTools.getSingletonEntity(s, i, self.dbEngine)
 
 
-    def getFilePathEntity(self, filePath: str):
+    def getFilePathEntity(self, filePath: str, fileSchemeAndHost: str):
         '''
             Get the database value for the given filePath.
 
             :param filePath: The file path to retrieve.
+            :type filePath: str
+            :param filePath: The file scheme and host to support multiple locations
             :type filePath: str
 
             :return: A file path entity
@@ -145,9 +147,9 @@ class DbQuerier(object):
             ]).\
             where(table['file_path'].c.path == filePath)
 
-        i = table['file_path'].insert().values(path=filePath)
+        i = table['file_path'].insert().values(path=filePath, scheme_host=fileSchemeAndHost)
         
-        return dbTools.getSingletonEntity(s, i, self.dbEngine, 'filePath', allowParallel=False)
+        return dbTools.getSingletonEntity(s, i, self.dbEngine)
 
 
     def getFileEntity(self, fileDescriptor: FileDescriptor, fileMimeEntity: any, fileEncodingEntity: any, filePathEntity: any):
@@ -176,20 +178,20 @@ class DbQuerier(object):
                 table['file'].c.id_file_mime == fileMimeEntity['id'],
                 table['file'].c.id_file_encoding == fileEncodingEntity['id'],
                 table['file'].c.id_file_path == filePathEntity['id'],
-                table['file'].c.filename == fileDescriptor.getFileName()
+                table['file'].c.filename == fileDescriptor.name
             ))
 
         i = table['file'].insert().values(
             id_file_mime=fileMimeEntity['id'],
             id_file_encoding=fileEncodingEntity['id'],
             id_file_path=filePathEntity['id'],
-            filename=fileDescriptor.getFileName(),
-            size_kilobyte=fileDescriptor.getFileSizeKB(),
-            last_update=fileDescriptor.getModificationDateTime(),
-            file_description=fileDescriptor.getFileDescription()
+            filename=fileDescriptor.name,
+            size_kilobyte=fileDescriptor.sizeKB,
+            last_update=fileDescriptor.modificationDateTime,
+            file_description=fileDescriptor.description
         )
         
-        return dbTools.getSingletonEntity(s, i, self.dbEngine, allowParallel=True)
+        return dbTools.getSingletonEntity(s, i, self.dbEngine)
 
     def addFileInDatabase(self, fileDescriptor: FileDescriptor) -> None:
         '''
@@ -199,7 +201,7 @@ class DbQuerier(object):
             :type FileDescriptor: :class:`public.fileDescriptor.FileDescriptor`
         '''
 
-        fileMimeEntity = self.getFileMimeEntity(fileDescriptor.getFileMime())
-        fileEncodingEntity = self.getFileEncodingEntity(fileDescriptor.getFileEncoding())
-        filePathEntity = self.getFilePathEntity(fileDescriptor.getFilePath())
-        fileEntity = self.getFileEntity(fileDescriptor, fileMimeEntity, fileEncodingEntity, filePathEntity)
+        fileMimeEntity = self.getFileMimeEntity(fileDescriptor.mime)
+        fileEncodingEntity = self.getFileEncodingEntity(fileDescriptor.encoding)
+        filePathEntity = self.getFilePathEntity(fileDescriptor.path, fileDescriptor.schemeAndHost)
+        self.getFileEntity(fileDescriptor, fileMimeEntity, fileEncodingEntity, filePathEntity)

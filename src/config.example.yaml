@@ -5,6 +5,7 @@ global:
         - modules.audioFileModule.AudioFileModule
         - modules.videoFileModule.VideoFileModule
         - modules.imageFileModule.ImageFileModule
+        - modules.documentFileModule.DocumentFileModule
     fileSystemModules:
         - public.modules.LocalFileSystemModule
     workersCount: 2
@@ -20,6 +21,8 @@ global:
             - "*/bin/*"
             followSymlinks: false
         - /home/dademo/Vidéos
-
+        - /home/dademo/books
+    relativePath: /data
+    
 core:
     workers: 4

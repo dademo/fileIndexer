@@ -11,4 +11,5 @@ configuration = {
     'moduleWorkersCount': ConfigDef(shortName="moduleWorkersCount", yamlPath="/global/workersCount", required=False, defaultValue=os.cpu_count()),
     'appDataSources': ConfigDef(shortName="appDataSources", yamlPath="/global/dataSources", required=True, getter=moduleConfigurationGetters.getAppDataSources,
                                 onMissing="No configured data sources at path [`/global/dataSources`]. This value must be configured."),
+    'relativePath': ConfigDef(shortName="relativePath", yamlPath="/global/relativePath", required=False, defaultValue=None)
 }

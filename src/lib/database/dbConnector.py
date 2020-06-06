@@ -1,9 +1,8 @@
 import os
 from typing import Iterable
 
-from lib.configuration import dbConfiguration
-
 from public.configHandler import ConfigHandler
+from public.configuration import dbConfiguration
 from .exceptions import MissingDatabaseConfigurationException
 
 import sqlalchemy
