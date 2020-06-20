@@ -6,6 +6,20 @@ from sqlalchemy.engine import Engine, Connection, Transaction
 
 from typing import Iterable
 import os
+import logging
+
+logger = logging.getLogger('fileIndexer').getChild('lib.database.dbInitializer')
+
+
+def _mergeMetadata(metas: Iterable[MetaData]) -> MetaData:
+
+    globalMetaData = MetaData()
+
+    for metaData in metas:
+        for (tableName, table) in metaData.tables.items():
+            globalMetaData._add_table(table.name, table.schema, table)
+
+    return globalMetaData
 
 
 def initializeDb(dbEngine: Engine, configuration: ConfigHandler) -> None:
@@ -17,10 +31,15 @@ def initializeDb(dbEngine: Engine, configuration: ConfigHandler) -> None:
         :param configuration: The application configuration.
     '''
 
-    for module in configuration.getFileHandleModules():
-        moduleMetaData = MetaData(schema=module.getDatabaseSchema())
+    allMetas = []
+    for stepModules in configuration.getDependencyTree():
+        for _module in stepModules:
+            moduleMetaData = MetaData(schema=_module.getDatabaseSchema())
 
-        module.defineTables(moduleMetaData, configuration)
+            _module.defineTables(moduleMetaData, configuration)
 
-        moduleMetaData.create_all(dbEngine)
+            allMetas.append(moduleMetaData)
+
+    globalMetaData = _mergeMetadata(allMetas)
+    globalMetaData.create_all(dbEngine)
 

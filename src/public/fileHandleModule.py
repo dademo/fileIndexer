@@ -74,6 +74,17 @@ class FileHandleModule(ABC):
         '''
         pass
 
+    def getDBQuerier(self, dbEngine: sqlalchemy.engine.Engine, appConfig: ConfigHandler) -> object:
+        '''
+            Get an object which can query the database and return specific entities.
+
+            Return ``None`` if not implemented.
+
+            :return: an object which can query the database and return specific entities.
+            :rtype: object
+        '''
+        return None
+
     # Processing
     @abstractmethod
     def canHandle(self, fileDescriptor: FileDescriptor) -> bool:
@@ -90,7 +101,7 @@ class FileHandleModule(ABC):
         pass
 
     @abstractmethod
-    def handle(self, fileDescriptor: FileDescriptor, dbEngine: sqlalchemy.engine.Engine, haveBeenModified: bool) -> None:
+    def handle(self, fileDescriptor: FileDescriptor, dbEngine: sqlalchemy.engine.Engine, appConfig: ConfigHandler) -> None:
         '''
             Perform data extraction from the given file.
 
@@ -99,9 +110,5 @@ class FileHandleModule(ABC):
             :type fileDescriptor: :class:`public.fileDescriptor.FileDescriptor`
             :param dbEngine: A SQLAlchemy engine to query the configured database.
             :type dbEngine: :class:`sqlalchemy.engine.Engine`
-            :param haveBeenModifier: Inform whether this file have been modified since
-                                        last execution. This information should be used
-                                        in order to avoid useless processing.
-            :type haveBeenModified: bool
         '''
         pass

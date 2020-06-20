@@ -1,4 +1,4 @@
-from public import FileHandleModule, FileDescriptor
+from public import FileDescriptor
 import public.dbTools as dbTools
 import logging
 
@@ -15,10 +15,10 @@ class DbQuerier(object):
         :param dbEngine: A SQLAlchemy DBEngine.
         :type dbEngine: sqlalchemy.engine.Engine
         :param moduleRef: A reference to the calling module (self).
-        :type moduleRef: class:`public.fileHandleModule.FileHandleModule`
+        :type moduleRef: class:`public.modules.coreModule.module.CoreModule`
     '''
     
-    def __init__(self, dbEngine: sqlalchemy.engine.Engine, moduleRef: FileHandleModule):
+    def __init__(self, dbEngine: sqlalchemy.engine.Engine, moduleRef: 'CoreModule'):
         self.dbEngine = dbEngine
         self.moduleRef = moduleRef
         self.table = moduleRef.getSharedTables()
@@ -101,7 +101,7 @@ class DbQuerier(object):
 
         i = table['file_mime'].insert().values(mime=fileMime)
         
-        return dbTools.getSingletonEntity(s, i, self.dbEngine)
+        return dbTools.getSingletonEntity(s, i, self.dbEngine, allowParallel=False)
 
 
     def getFileEncodingEntity(self, fileEncoding: str):
@@ -124,7 +124,7 @@ class DbQuerier(object):
 
         i = table['file_encoding'].insert().values(encoding=fileEncoding)
         
-        return dbTools.getSingletonEntity(s, i, self.dbEngine)
+        return dbTools.getSingletonEntity(s, i, self.dbEngine, allowParallel=False)
 
 
     def getFilePathEntity(self, filePath: str, fileSchemeAndHost: str):
@@ -133,7 +133,7 @@ class DbQuerier(object):
 
             :param filePath: The file path to retrieve.
             :type filePath: str
-            :param filePath: The file scheme and host to support multiple locations
+            :param fileSchemeAndHost: The file scheme and host to support multiple locations
             :type filePath: str
 
             :return: A file path entity
@@ -149,7 +149,7 @@ class DbQuerier(object):
 
         i = table['file_path'].insert().values(path=filePath, scheme_host=fileSchemeAndHost)
         
-        return dbTools.getSingletonEntity(s, i, self.dbEngine)
+        return dbTools.getSingletonEntity(s, i, self.dbEngine, allowParallel=False)
 
 
     def getFileEntity(self, fileDescriptor: FileDescriptor, fileMimeEntity: any, fileEncodingEntity: any, filePathEntity: any):
@@ -191,11 +191,11 @@ class DbQuerier(object):
             file_description=fileDescriptor.description
         )
         
-        return dbTools.getSingletonEntity(s, i, self.dbEngine)
+        return dbTools.getSingletonEntity(s, i, self.dbEngine, allowParallel=True)
 
-    def addFileInDatabase(self, fileDescriptor: FileDescriptor) -> None:
+    def getFileInDatabase(self, fileDescriptor: FileDescriptor) -> None:
         '''
-            Insert base file information in the database.
+            Insert base file information in the database and return it.
 
             :param fileDescriptor: A file descriptor to get file informations.
             :type FileDescriptor: :class:`public.fileDescriptor.FileDescriptor`
@@ -204,4 +204,4 @@ class DbQuerier(object):
         fileMimeEntity = self.getFileMimeEntity(fileDescriptor.mime)
         fileEncodingEntity = self.getFileEncodingEntity(fileDescriptor.encoding)
         filePathEntity = self.getFilePathEntity(fileDescriptor.path, fileDescriptor.schemeAndHost)
-        self.getFileEntity(fileDescriptor, fileMimeEntity, fileEncodingEntity, filePathEntity)
+        return self.getFileEntity(fileDescriptor, fileMimeEntity, fileEncodingEntity, filePathEntity)

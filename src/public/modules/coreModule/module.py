@@ -45,9 +45,9 @@ class CoreModule(FileHandleModule):
         ##
         self.tables['file'] = sqlalchemy.Table('file', metadata,
             sqlalchemy.Column('id', sqlalchemy.Integer, sqlalchemy.Sequence('file_id_seq'), primary_key=True),
-            sqlalchemy.Column('id_file_mime', sqlalchemy.Integer, sqlalchemy.ForeignKey('file_mime.id', ondelete='CASCADE'), nullable=False),
-            sqlalchemy.Column('id_file_encoding', sqlalchemy.Integer, sqlalchemy.ForeignKey('file_encoding.id', ondelete='CASCADE'), nullable=False),
-            sqlalchemy.Column('id_file_path', sqlalchemy.Integer, sqlalchemy.ForeignKey('file_path.id', ondelete='CASCADE'), nullable=False),
+            sqlalchemy.Column('id_file_mime', sqlalchemy.Integer, sqlalchemy.ForeignKey(self.tables['file_mime'].c.id, ondelete='CASCADE'), nullable=False),
+            sqlalchemy.Column('id_file_encoding', sqlalchemy.Integer, sqlalchemy.ForeignKey(self.tables['file_encoding'].c.id, ondelete='CASCADE'), nullable=False),
+            sqlalchemy.Column('id_file_path', sqlalchemy.Integer, sqlalchemy.ForeignKey(self.tables['file_path'].c.id, ondelete='CASCADE'), nullable=False),
             sqlalchemy.Column('filename', sqlalchemy.String(255), index=True, nullable=False),
             sqlalchemy.Column('size_kilobyte', sqlalchemy.Integer, nullable=False),
             sqlalchemy.Column('last_update', sqlalchemy.DateTime, index=True, default=None),    # Updated with sha
@@ -61,14 +61,15 @@ class CoreModule(FileHandleModule):
 
     def haveBeenModified(self, fileDescriptor: FileDescriptor, dbEngine: sqlalchemy.engine.Engine) -> bool:
         return DbQuerier(dbEngine, self).haveBeenModified(fileDescriptor)
+    
+    def getDBQuerier(self, dbEngine: sqlalchemy.engine.Engine, appConfig: ConfigHandler):
+        return DbQuerier(dbEngine, self)
 
     def canHandle(self, fileDescriptor: FileDescriptor) -> bool:
         # Handle everything
         return True
 
-    def handle(self, fileDescriptor: FileDescriptor, dbEngine: sqlalchemy.engine.Engine, haveBeenModified: bool) -> None:
-
-        dbQuerier = DbQuerier(dbEngine, self)
+    def handle(self, fileDescriptor: FileDescriptor, dbEngine: sqlalchemy.engine.Engine, appConfig: ConfigHandler) -> None:
+        dbQuerier = self.getDBQuerier(dbEngine, appConfig)
         if not dbQuerier.isFileInDatabase(fileDescriptor):
-            #logger.info('File [%s] not in the database' % fileDescriptor.getFileFullName())
-            dbQuerier.addFileInDatabase(fileDescriptor)
+            dbQuerier.getFileInDatabase(fileDescriptor)

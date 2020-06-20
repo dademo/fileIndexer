@@ -22,10 +22,10 @@ class VideoFileModule(FileHandleModule):
         return 'video'
 
     def defineTables(self, metadata: sqlalchemy.MetaData, configuration: ConfigHandler) -> None:
-        pass
+        self.tables = {}
 
     def getSharedTables(self) -> Dict[str, sqlalchemy.Table]:
-        return {}
+        return self.tables.copy()
 
     # Processing
     def canHandle(self, fileDescriptor: FileDescriptor) -> bool:
@@ -33,7 +33,7 @@ class VideoFileModule(FileHandleModule):
         return True
 
 
-    def handle(self, fileDescriptor: FileDescriptor, dbEngine: sqlalchemy.engine.Engine, haveBeenModified: bool) -> None:
+    def handle(self, fileDescriptor: FileDescriptor, dbEngine: sqlalchemy.engine.Engine, appConfig: ConfigHandler) -> None:
         '''
             Perform data extraction from the given file.
 
@@ -41,8 +41,5 @@ class VideoFileModule(FileHandleModule):
             :type fileDescriptor: :class:`public.fileDescriptor.FileDescriptor`
             :param dbEngine: A SQLAlchemy engine to query the configured database.
             :type dbEngine: :class:`sqlalchemy.engine.Engine`
-            :param haveBeenModifier: Inform whether this file have been modified since last execution.
-                                        This information should be used in order to avoid useless processing.
-            :type haveBeenModified: bool
         '''
         pass

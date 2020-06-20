@@ -1,4 +1,3 @@
-
 import logging
 
 from public import ConfigHandler

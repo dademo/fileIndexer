@@ -62,6 +62,7 @@ def loadApplicationConfiguration(configPath: str) -> ConfigHandler:
     )
 
     applicationConfiguration._appDataSourcesCfg = moduleConfiguration['appDataSources']
+    applicationConfiguration._dependencyTree = buildDependencyTree(applicationConfiguration.getFileHandleModules())
 
     return applicationConfiguration
 
@@ -98,20 +99,19 @@ if __name__ == '__main__':
     signal.signal(signal.SIGTERM, onAppClose)
     
     applicationConfiguration = loadApplicationConfiguration(configPath = os.path.abspath(os.path.join(os.path.dirname(__file__) or '.', 'config.yaml')))
+
     dbEngine = getInitializedDb(applicationConfiguration)
 
 
     # fsModule = LocalFileSystemModule()
     # fsModule.connect(urlparse('/home/dademo/Musique'), applicationConfiguration)
     
-    executionSteps = buildDependencyTree(applicationConfiguration.getFileHandleModules())
-
     logger.debug('Handling files')
 
     messageDispatcher = MessageDispatcher(applicationConfiguration)
 
     # threadsafety
 
-    messageDispatcher.dispatch(executionSteps, dbEngine)
+    messageDispatcher.dispatch(dbEngine, applicationConfiguration)
 
     exit(0)

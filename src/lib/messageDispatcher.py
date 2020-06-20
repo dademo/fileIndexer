@@ -59,6 +59,7 @@ class CachedFileDescriptorsIterator(object):
             self._iter = self._fileSystemModule.listFiles(ignorePatterns=self._ignorePatterns, followSymlinks=self._followSymlinks)
             self._cache = []
         else:
+            self._iter = None
             self._iterPos = 0
         return self
 
@@ -105,21 +106,20 @@ class MessageDispatcher(object):
         '''
         self._done = True
 
-    def dispatch(self, steps: List[List[FileHandleModule]], dbEngine: Engine) -> None:
+    def dispatch(self, dbEngine: Engine, appConfig: ConfigHandler) -> None:
         '''
             Dispatch found files for each path configured.
 
             It handles parallel processing if available (depends on the data source type, if it handles parallel
             connections).
-
-            :param steps: Steps to execute. A step is a list of :class:`public.fileHandleModule.FileHandleModule`
-                            to process.
-            :type steps: List[List[:class:`public.fileHandleModule.FileHandleModule`]]
             :param dbEngine: A database connection.
             :type dbEngine: :class:`sqlalchemy.engine.Engine`
+            :param dbEngine: The application configuration.
+            :type dbEngine: :class:`public.configHandler.ConfigHandler`
         '''
 
         # import $(dbEngine.driver).threadsafety
+        steps = appConfig.getDependencyTree()
         workResults = []
         ex = None
         actualModuleCallCount = 1
@@ -145,7 +145,7 @@ class MessageDispatcher(object):
                     self.threadPool.join()
                     return
 
-        def runHandle(coreModule: 'CoreModule', currentModule: FileHandleModule, fileDescriptor: FileDescriptor):
+        def runHandle(currentModule: FileHandleModule, fileDescriptor: FileDescriptor):
             try:
                 if any(map(
                     lambda _mime: fnmatch(fileDescriptor.mime, _mime),
@@ -153,15 +153,7 @@ class MessageDispatcher(object):
                 )):
                     if not self._done:
                         if currentModule.canHandle(fileDescriptor):
-
-                            if coreModule:
-                                haveBeenModified = coreModule.haveBeenModified(fileDescriptor, dbEngine)
-                            else:
-                                # CoreModule have not been loaded, default
-                                haveBeenModified = True
-
-                            currentModule.handle(
-                                fileDescriptor, dbEngine, haveBeenModified)
+                            currentModule.handle(fileDescriptor, dbEngine, appConfig)
             except Exception as ex:
                 logger.exception("An error occured while running module [%s] on file [%s]" % (currentModule.__class__, fileDescriptor.fullPath))
 
@@ -170,17 +162,6 @@ class MessageDispatcher(object):
                 Timer(5.0, printJobStatus).start()
                 if len(workResults) > 0:
                     logger.info('%d files to process' % len(workResults))
-
-        try:
-            coreModule = list(filter(
-                lambda m: m.__class__.__name__ == 'CoreModule',
-                list(itertools.chain(*steps))
-            )).pop()
-        except IndexError:
-            coreModule = None
-
-        if not coreModule:
-            logger.debug('CoreModule is not loaded')
 
         try:
             printJobStatus()
@@ -193,6 +174,7 @@ class MessageDispatcher(object):
                     ignorePatterns=dataSource['ignorePatterns'],
                     followSymlinks=dataSource['followSymlinks']
                 )
+                actualModuleCallCount = 1
 
                 for stepId in range(0, len(steps)):
                     logger.info('Processing step %(stepId)02d of %(stepLength)02d' % {
@@ -210,15 +192,16 @@ class MessageDispatcher(object):
                             if not self._done:
                                 if allowParallelExecution:
                                     workResults.append(
-                                        self.threadPool.apply_async(runHandle, args=(
-                                            coreModule, currentModule, fileDescriptor), error_callback=_errCallback)
-                                        #self.threadPool.apply(module.handle, args=(fileDescriptor, dbEngine, haveBeenModified))
+                                        self.threadPool.apply_async(
+                                            runHandle,
+                                            args=(currentModule, fileDescriptor),
+                                            error_callback=_errCallback
+                                        )
                                     )
                                 else:
                                     # Synchronous call
                                     try:
-                                        runHandle(
-                                            coreModule, currentModule, fileDescriptor)
+                                        runHandle(currentModule, fileDescriptor)
                                     except Exception as ex:
                                         _errCallback(ex)
                             else:
@@ -228,12 +211,14 @@ class MessageDispatcher(object):
                                 self.threadPool.join()
                                 return
 
-                        logger.info('Job prepared, waiting for all to complete ...')
+                        logger.info('Jobs prepared, waiting for all to complete ...')
                         # We wait for all jobs to process before the next step
                         waitAll()
                         logger.info('Done')
                         if self._done:
                             return
+
+                        actualModuleCallCount += 1
 
         except Exception as _ex:
             ex = _ex

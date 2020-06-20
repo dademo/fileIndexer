@@ -44,6 +44,7 @@ class ConfigHandler(object):
         self._threadSafety = None
         self._fileHandleModules = []
         self._fileSystemModules = []
+        self._dependencyTree = [[]]
 
         if not self._config:
             raise ConfiguratonError("Unable to load configuration at path [%s]" % configPath)
@@ -98,7 +99,27 @@ class ConfigHandler(object):
             :returns: All the loaded file handle modules.
             :rtype: List[:class:`public.fileHandleModule.FileHandleModule`]
         '''
-        return self._fileHandleModules
+        return (self._fileHandleModules or []).copy()
+
+    def getFileHandleModuleByName(self, moduleName: str) -> 'FileHandleModule':
+        '''
+            Get a loaded module by name.
+
+            :returns: The wanted module.
+            :rtype: :class:`public.fileHandleModule.FileHandleModule`
+            :raises ValueError: Module not found or found multiple times 
+        '''
+        def _filter(m: object):
+            return moduleName == m.__class__.__name__ or \
+                moduleName == '%s.%s' % (m.__class__.__module__, m.__class__.__name__)
+
+        results = list(filter(_filter, self._fileHandleModules))
+        if len(results) == 0:
+            raise ValueError('Module [%s] not found' % moduleName)
+        elif len(results) != 1:
+            raise ValueError('Multiple modules found for module [%s] (%s)' % (moduleName, ','.join(map(lambda m: m.__class__, results))))
+        else:
+            return results[0]
 
     def getFileSystemModules(self) -> List['FileSystemModule']:
         '''
@@ -107,9 +128,10 @@ class ConfigHandler(object):
             :returns: All the loaded file system modules.
             :rtype: List[:class:`public.fileSystemModule.FileSystemModule`]
         '''
-        return self._fileSystemModules
+        return (self._fileSystemModules or []).copy()
 
-    def getFileSystemModuleForDataSource(self, dataSource: str):
+
+    def getFileSystemModuleForDataSource(self, dataSource: str) -> 'FileSystemModule':
 
         def fileSystemModuleHandleScheme(fileSystemModule: 'FileSystemModule', scheme: str):
             moduleAllSchemes = fileSystemModule.handledURLSchemes()
@@ -152,3 +174,11 @@ class ConfigHandler(object):
             _dataSource = [ _dataSource ]
 
         return _dataSource
+
+    def getDependencyTree(self):
+        '''
+            :returns: Steps to execute. A step is a list of :class:`public.fileHandleModule.FileHandleModule`
+                            to process.
+            :rtype: List[List[:class:`public.fileHandleModule.FileHandleModule`]]
+        '''
+        return self._dependencyTree

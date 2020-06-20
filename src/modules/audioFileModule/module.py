@@ -1,10 +1,13 @@
 from typing import Iterable, Dict
+import logging
 
 from public import FileHandleModule, ConfigHandler, FileDescriptor
 
 import sqlalchemy
 
 import mutagen
+
+logger = logging.getLogger('fileIndexer').getChild('modules.AudioFileModule')
 
 
 class AudioFileModule(FileHandleModule):
@@ -38,7 +41,7 @@ class AudioFileModule(FileHandleModule):
         return not any(map(lambda m: fileDescriptor.mime == m, noTagMimes))
 
 
-    def handle(self, fileDescriptor: FileDescriptor, dbEngine: sqlalchemy.engine.Engine, haveBeenModified: bool) -> None:
+    def handle(self, fileDescriptor: FileDescriptor, dbEngine: sqlalchemy.engine.Engine, appConfig: ConfigHandler) -> None:
         
         with fileDescriptor.open() as _file:
             mutagenFile = mutagen.File(_file)
@@ -48,6 +51,6 @@ class AudioFileModule(FileHandleModule):
                 # print(mutagenFile.info)
                 # print(mutagenFile.tags)
             except Exception as ex:
-                print('Got exception [%s]' % repr(ex))
-                print('Error with file [%s]' % fileDescriptor.fullPath)
+                logger.error('Got exception [%s]' % repr(ex))
+                logger.error('Error with file [%s]' % fileDescriptor.fullPath)
         pass
